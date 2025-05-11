@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Header from "./Header";
+import Home from "./Home";
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -37,22 +40,31 @@ function App() {
   }, []);
 
   return (
-    <div style={{ textAlign: "center", padding: "2rem" }}>
-      <h1>Spotify Profile</h1>
-      {profile ? (
-        <>
-          <p>
-            Logged in as: <strong>{profile.display_name || profile.email}</strong>
-          </p>
-          <button onClick={handleLogout}>Logout</button>
-        </>
-      ) : (
-        <>
-          <p>You are not logged in.</p>
-          <button onClick={handleLogin}>Login with Spotify</button>
-        </>
-      )}
-    </div>
+    <Router>
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <h1>Spotify Profile</h1>
+        {profile ? (
+          <>
+            <p>
+              Logged in as: <strong>{profile.display_name || profile.email}</strong>
+            </p>
+            <button onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <>
+            <p>You are not logged in.</p>
+            <button onClick={handleLogin}>Login with Spotify</button>
+          </>
+        )}
+
+        <Header />
+        <main>
+          <Routes>
+            <Route path="/" element={<Home />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 
