@@ -1,18 +1,37 @@
 import { Link } from "react-router-dom";
 import MyMusicMindLogo from "../src/images/MyMusicMindLogo.png";
+import "./Header.css";
 
-const Header = () => {
+const Header = ({ profile, onLogin, onLogout }) => {
   return (
-    <main>
-      <nav className="Navigation_bar">
-        <img src={MyMusicMindLogo} alt="littleLemonLogo" />
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-        </ul>
-      </nav>
-    </main>
+    <header className="Navigation_bar">
+      <img src={MyMusicMindLogo} alt="logo" height="100" />
+
+      <ul>
+        <li>
+          <Link to="/">Home</Link>
+        </li>
+      </ul>
+
+      <div className="AuthSection">
+        {profile ? (
+          <>
+            <p>
+              Logged in as: <strong>{profile.display_name || profile.email}</strong>
+            </p>
+            <button className="HeaderButton" onClick={onLogout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="HeaderButton" onClick={onLogin}>
+              Log in with Spotify
+            </button>
+          </>
+        )}
+      </div>
+    </header>
   );
 };
 
