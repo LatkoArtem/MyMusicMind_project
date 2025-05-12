@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import MyMusicMindLogo from "../src/images/MyMusicMindLogo.png";
+import MyMusicMindLogo from "../src/images/MyMusicMindLogo2.png";
 import "./Header.css";
 
 const Header = ({ profile, onLogin, onLogout }) => {
@@ -10,6 +10,18 @@ const Header = ({ profile, onLogin, onLogout }) => {
       <ul>
         <li>
           <Link to="/">Home</Link>
+        </li>
+        <li>
+          <Link to="/">Hello world</Link>
+        </li>
+        <li>
+          <Link to="/">Contacts</Link>
+        </li>
+        <li>
+          <Link to="/">About me</Link>
+        </li>
+        <li>
+          <Link to="/">More</Link>
         </li>
       </ul>
 

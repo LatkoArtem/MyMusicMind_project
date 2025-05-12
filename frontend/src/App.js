@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./Header";
 import Home from "./Home";
 import "./App.css";
+import Background from "../src/images/Background.png";
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -42,7 +43,17 @@ function App() {
 
   return (
     <Router>
-      <div className="AppWrapper" style={{ padding: "1rem" }}>
+      <div
+        className="AppWrapper"
+        style={{
+          backgroundImage: `url(${Background})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+          padding: "1rem",
+        }}
+      >
         <Header profile={profile} onLogin={handleLogin} onLogout={handleLogout} />
         <main>
           <Routes>
