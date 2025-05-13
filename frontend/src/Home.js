@@ -1,5 +1,7 @@
+import "./Home.css";
+
 const Home = () => {
-  <p>HOME PAGE</p>;
+  return <p className="Homepage">HOME PAGE</p>;
 };
 
 export default Home;

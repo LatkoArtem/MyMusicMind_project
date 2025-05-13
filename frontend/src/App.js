@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./Header";
 import Home from "./Home";
+import Page2 from "./Page2";
+import Page3 from "./Page3";
+import Page4 from "./Page4";
+import Page5 from "./Page5";
 import "./App.css";
 import Background from "../src/images/Background.png";
 
 function App() {
   const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const API_URL = "http://127.0.0.1:8888";
 
@@ -21,7 +26,8 @@ function App() {
       .then((data) => {
         setProfile(data);
       })
-      .catch(() => setProfile(null));
+      .catch(() => setProfile(null))
+      .finally(() => setLoading(false));
   };
 
   const handleLogin = () => {
@@ -54,10 +60,14 @@ function App() {
           padding: "1rem",
         }}
       >
-        <Header profile={profile} onLogin={handleLogin} onLogout={handleLogout} />
+        <Header profile={profile} onLogin={handleLogin} onLogout={handleLogout} loading={loading} />
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/Page2" element={<Page2 />} />
+            <Route path="/Page3" element={<Page3 />} />
+            <Route path="/Page4" element={<Page4 />} />
+            <Route path="/Page5" element={<Page5 />} />
           </Routes>
         </main>
       </div>

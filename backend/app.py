@@ -33,6 +33,7 @@ SCOPE = "user-read-private user-read-email"
 
 @app.route("/login")
 def login():
+    session["expecting_callback"] = True
     auth_url = (
         f"{SPOTIFY_AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
         f"&scope={SCOPE}&redirect_uri={REDIRECT_URI}&show_dialog=true"
@@ -41,7 +42,20 @@ def login():
 
 @app.route("/callback")
 def callback():
+    if not session.get("expecting_callback"):
+        return redirect("http://localhost:3000?error=unexpected_callback")
+
+    session.pop("expecting_callback", None)
+
+    error = request.args.get("error")
+    if error:
+        # Користувач натиснув "Скасувати" або сталася інша помилка
+        return redirect("http://localhost:3000?error=access_denied")
+
     code = request.args.get("code")
+    if not code:
+        return redirect("http://localhost:3000?error=no_code")
+
     response = requests.post(
         SPOTIFY_TOKEN_URL,
         data={
@@ -55,7 +69,7 @@ def callback():
     )
 
     if response.status_code != 200:
-        return "Failed to get token", 400
+        return redirect("http://localhost:3000?error=token_failed")
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]

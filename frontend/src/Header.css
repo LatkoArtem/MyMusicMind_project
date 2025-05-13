@@ -3,17 +3,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.5); /* напівпрозорий фон */
+  background: rgba(0, 0, 0, 0.5);
   color: white;
   border-radius: 0 0 40px 40px;
-  backdrop-filter: blur(10px); /* стиль "скла" */
+  backdrop-filter: blur(10px);
   position: relative;
 }
 
-.Navigation_bar img {
+.MyMusicMindLogo {
   width: 120px;
   height: auto;
-  border-radius: 50%;
   padding: 5px;
   margin-right: 20px;
 }
@@ -53,6 +52,69 @@
   gap: 5px;
 }
 
+.ProfileWrapper {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.ProfileAvatar {
+  filter: brightness(0) invert(1);
+  cursor: pointer;
+  border: 2px solid white;
+  border-radius: 100px;
+}
+
+.ProfileName {
+  font-size: 17px;
+}
+
+.DropdownMenu {
+  position: absolute;
+  top: 90px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 150px;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.DropdownDivider {
+  border: none;
+  height: 1px;
+  background-color: grey;
+  margin: 0.5rem 0;
+}
+
+.DropdownMenu p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+  word-break: break-word;
+}
+
+.DropdownMenuSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.DropdownMenuSectionSVG {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.DropdownMenuSectionText {
+  font-size: 1rem;
+  color: white;
+}
+
 button {
   border: 2px solid white;
   padding: 16px 10px;
@@ -64,8 +126,12 @@ button {
   transition: background-color 0.3s ease;
 }
 
-button:hover {
+.LoginButton:hover {
   background-color: #17a94c;
+}
+
+.LogoutButton:hover {
+  background-color: red;
 }
 
 /* Адаптація для ширших екранів */
@@ -75,7 +141,7 @@ button:hover {
   }
 
   .Navigation_bar img {
-    width: 100px;
+    width: 120px;
   }
 
   .AuthSection {
