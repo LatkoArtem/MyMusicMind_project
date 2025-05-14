@@ -64,10 +64,6 @@
   border-radius: 100px;
 }
 
-.ProfileName {
-  font-size: 17px;
-}
-
 .DropdownMenu {
   position: absolute;
   top: 90px;
@@ -91,11 +87,25 @@
   margin: 0.5rem 0;
 }
 
-.DropdownMenu p {
+.ProfileName {
   margin: 0;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: bold;
   word-break: break-word;
+}
+
+.ProfileEmail {
+  margin: 0;
+  font-size: 14px;
+  color: rgb(188, 178, 178);
+}
+
+.ProfileProduct {
+  font-size: 11px;
+  padding: 2px;
+  color: rgb(29, 185, 84);
+  border: 2px solid white;
+  border-radius: 6px;
 }
 
 .DropdownMenuSection {

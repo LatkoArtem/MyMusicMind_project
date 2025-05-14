@@ -67,7 +67,10 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
             />
             {dropdownOpen && (
               <div className="DropdownMenu">
-                <p className="ProfileName">{profile.display_name || profile.email}</p>
+                <p className="ProfileName">
+                  {profile.display_name} <span className="ProfileProduct">{profile.product}</span>
+                </p>
+                <p className="ProfileEmail">{profile.email}</p>
                 <hr className="DropdownDivider" />
                 <div className="DropdownMenuSection">
                   <svg

@@ -17,6 +17,7 @@ function App() {
 
   const fetchProfile = () => {
     fetch(`${API_URL}/profile`, {
+      method: "GET",
       credentials: "include",
     })
       .then((res) => {

@@ -33,6 +33,7 @@ SCOPE = "user-read-private user-read-email"
 
 @app.route("/login")
 def login():
+    session.pop("access_token", None)
     session["expecting_callback"] = True
     auth_url = (
         f"{SPOTIFY_AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
@@ -87,6 +88,9 @@ def profile():
         headers={"Authorization": f"Bearer {access_token}"}
     )
 
+    print("👉 Spotify API status:", response.status_code)
+    print("👉 Spotify API response:", response.text)
+
     if response.status_code != 200:
         return jsonify({"error": "Failed to fetch profile"}), 400
 
@@ -95,7 +99,9 @@ def profile():
 @app.route("/logout", methods=["POST"])
 def logout():
     session.pop("access_token", None)
-    return jsonify({"message": "Logged out"}), 200
+    response = jsonify({"message": "Logged out"})
+    response.delete_cookie('session')
+    return response, 200
 
 if __name__ == "__main__":
     app.run(port=8888, debug=True)
