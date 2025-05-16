@@ -50,7 +50,7 @@ def callback():
 
     error = request.args.get("error")
     if error:
-        # Користувач натиснув "Скасувати" або сталася інша помилка
+        # The user clicked "Cancel" or another error occurred
         return redirect("http://localhost:3000?error=access_denied")
 
     code = request.args.get("code")

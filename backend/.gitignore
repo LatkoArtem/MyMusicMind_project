@@ -1,6 +1,7 @@
 /venv/
 
 /.env
+/config.py
 
 /flask_session_files/
 /flask_session/
