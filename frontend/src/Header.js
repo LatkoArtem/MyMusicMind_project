@@ -72,7 +72,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                 </p>
                 <p className="ProfileEmail">{profile.email}</p>
                 <hr className="DropdownDivider" />
-                <div className="DropdownMenuSection">
+                <Link to="/Profile" className="DropdownMenuSection" onClick={() => setDropdownOpen(false)}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -88,7 +88,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                     />
                   </svg>
                   <span className="DropdownMenuSectionText">Profile</span>
-                </div>
+                </Link>
                 <div className="DropdownMenuSection">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

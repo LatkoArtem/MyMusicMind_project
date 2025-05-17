@@ -6,6 +6,7 @@ import Page2 from "./Page2";
 import Page3 from "./Page3";
 import Page4 from "./Page4";
 import Page5 from "./Page5";
+import ProfilePage from "./ProfilePage";
 import "./App.css";
 import Background from "../src/images/Background.png";
 
@@ -44,6 +45,10 @@ function App() {
       .catch((err) => console.error("Logout failed:", err));
   };
 
+  const handleProfileUpdate = (updatedProfile) => {
+    setProfile(updatedProfile);
+  };
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -69,6 +74,7 @@ function App() {
             <Route path="/Page3" element={<Page3 />} />
             <Route path="/Page4" element={<Page4 />} />
             <Route path="/Page5" element={<Page5 />} />
+            <Route path="/Profile" element={<ProfilePage profile={profile} onUpdate={handleProfileUpdate} />} />
           </Routes>
         </main>
       </div>

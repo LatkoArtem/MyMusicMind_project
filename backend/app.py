@@ -1,9 +1,12 @@
 import os
 import requests
+import json
 from flask import Flask, request, redirect, session, jsonify
 from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
+
+PROFILE_PATH = "./flask_session_files/profile_data.json"
 
 load_dotenv()
 
@@ -30,6 +33,13 @@ SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
 SCOPE = "user-read-private user-read-email"
+
+@app.route("/profile/update", methods=["POST"])
+def update_profile():
+    data = request.json
+    with open(PROFILE_PATH, "w") as f:
+        json.dump(data, f)
+    return jsonify({"message": "Profile updated successfully"})
 
 @app.route("/login")
 def login():
@@ -94,7 +104,14 @@ def profile():
     if response.status_code != 200:
         return jsonify({"error": "Failed to fetch profile"}), 400
 
-    return jsonify(response.json())
+    profile_data = response.json()
+
+    if os.path.exists(PROFILE_PATH):
+        with open(PROFILE_PATH) as f:
+            local_changes = json.load(f)
+            profile_data.update(local_changes)
+
+    return jsonify(profile_data)
 
 @app.route("/logout", methods=["POST"])
 def logout():
