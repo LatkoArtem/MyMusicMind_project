@@ -63,7 +63,6 @@ function App() {
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           backgroundAttachment: "fixed",
-          padding: "1rem",
         }}
       >
         <Header profile={profile} onLogin={handleLogin} onLogout={handleLogout} loading={loading} />

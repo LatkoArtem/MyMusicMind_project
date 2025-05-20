@@ -2,22 +2,25 @@ import { useState, useEffect } from "react";
 import "./ProfilePage.css";
 
 const ProfilePage = ({ profile, onUpdate }) => {
+  const initialAvatar = profile?.avatar || profile?.images?.[0]?.url || null;
+
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || "",
     email: profile?.email || "",
-    avatar: profile?.avatar || null,
+    avatar: initialAvatar,
   });
 
   const [message, setMessage] = useState("");
-  const [previewAvatar, setPreviewAvatar] = useState(profile?.avatar || null);
 
   useEffect(() => {
+    const updatedAvatar = profile?.avatar || profile?.images?.[0]?.url || null;
+
     setFormData({
       display_name: profile?.display_name || "",
       email: profile?.email || "",
-      avatar: profile?.avatar || null,
+      avatar: updatedAvatar,
     });
-    setPreviewAvatar(profile?.avatar || null);
+
     setMessage("");
   }, [profile]);
 
@@ -26,21 +29,6 @@ const ProfilePage = ({ profile, onUpdate }) => {
       ...prev,
       [e.target.name]: e.target.value,
     }));
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewAvatar(reader.result);
-        setFormData((prev) => ({
-          ...prev,
-          avatar: reader.result,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -57,22 +45,12 @@ const ProfilePage = ({ profile, onUpdate }) => {
     <div className="ProfileEditContainer">
       <h2>Edit Profile</h2>
       <form className="ProfileForm" onSubmit={handleSubmit}>
-        <div className="AvatarUpload">
-          <label htmlFor="avatar-input" className="AvatarWrapper">
-            {previewAvatar ? (
-              <img src={previewAvatar} alt="Avatar" className="AvatarPreview" />
-            ) : (
-              <div className="AvatarPlaceholder">No Avatar</div>
-            )}
-            <div className="AvatarOverlay">Change</div>
-          </label>
-          <input
-            id="avatar-input"
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            style={{ display: "none" }}
-          />
+        <div className="AvatarDisplay">
+          {formData.avatar ? (
+            <img src={formData.avatar} alt="Avatar" className="AvatarPreview" />
+          ) : (
+            <div className="AvatarPlaceholder">No Avatar</div>
+          )}
         </div>
 
         <label>
