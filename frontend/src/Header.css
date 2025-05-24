@@ -168,7 +168,6 @@
 }
 
 .ProfileAvatar {
-  filter: brightness(0) invert(1);
   cursor: pointer;
   border: 2px solid white;
   border-radius: 100px;

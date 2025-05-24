@@ -8,6 +8,7 @@ const ProfilePage = ({ profile, onUpdate }) => {
     display_name: profile?.display_name || "",
     email: profile?.email || "",
     avatar: initialAvatar,
+    bio: profile?.bio || "",
   });
 
   const [message, setMessage] = useState("");
@@ -19,25 +20,61 @@ const ProfilePage = ({ profile, onUpdate }) => {
       display_name: profile?.display_name || "",
       email: profile?.email || "",
       avatar: updatedAvatar,
+      bio: profile?.bio || "",
     });
 
     setMessage("");
   }, [profile]);
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const handleBioChange = (e) => {
+    const value = e.target.value;
+
+    const paragraphs = value.split("\n");
+
+    if (paragraphs.length > 4) {
+      const trimmed = paragraphs.slice(0, 4).join("\n");
+      setFormData((prev) => ({ ...prev, bio: trimmed }));
+    } else {
+      setFormData((prev) => ({ ...prev, bio: value }));
+    }
+
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  };
+
+  const handleBioKeyDown = (e) => {
+    const paragraphCount = formData.bio.split("\n").length;
+
+    if (e.key === "Enter" && paragraphCount >= 4) {
+      e.preventDefault();
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+
     try {
-      await onUpdate(formData);
-      setMessage("Profile updated successfully!");
+      const response = await fetch("http://localhost:8888/profile/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ bio: formData.bio }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save profile");
+      }
+
+      const result = await response.json();
+
+      setMessage(result.message || "Profile updated successfully!");
     } catch (error) {
-      setMessage("Failed to update profile");
+      setMessage("Error saving profile. Please try again.");
+      console.error(error);
     }
   };
 
@@ -55,14 +92,34 @@ const ProfilePage = ({ profile, onUpdate }) => {
 
         <label>
           Display Name:
-          <input type="text" name="display_name" value={formData.display_name} onChange={handleChange} required />
+          <input type="text" name="display_name" value={formData.display_name} disabled />
         </label>
 
         <label>
           Email:
-          <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+          <input type="email" name="email" value={formData.email} disabled />
         </label>
 
+        <label className="BioText">
+          Description:
+          <textarea
+            type="text"
+            name="bio"
+            value={formData.bio}
+            onChange={handleBioChange}
+            onKeyDown={handleBioKeyDown}
+            placeholder="Tell us something about yourself..."
+            rows={5}
+            maxLength={250}
+            style={{
+              resize: "none",
+              overflowY: "hidden",
+              lineHeight: "20px",
+              maxHeight: `${4 * 20 * 2}px`,
+            }}
+          />
+          <div className="charCount">{formData.bio.length} / 250</div>
+        </label>
         <button type="submit">Save Changes</button>
         {message && <p className="SuccessMessage">{message}</p>}
       </form>

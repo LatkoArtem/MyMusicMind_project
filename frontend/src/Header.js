@@ -78,11 +78,15 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
           {loading ? null : profile ? (
             <div className="ProfileWrapper" ref={dropdownRef}>
               <img
-                src={ProfileIcon}
+                src={profile.images?.[0]?.url || ProfileIcon}
                 alt="Profile"
                 className="ProfileAvatar"
                 onClick={toggleDropdown}
-                style={{ width: "50px", height: "50px" }}
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  filter: profile.images?.[0]?.url ? "none" : "brightness(0) invert(1)",
+                }}
               />
               {dropdownOpen && (
                 <div className="DropdownMenu">
