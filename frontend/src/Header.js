@@ -180,28 +180,28 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
             {profile ? (
               <ul className="SidebarNav">
                 <li>
-                  <NavLink to="/" onClick={closeSideMenu}>
-                    Home
+                  <NavLink to="/LikedSongsPage" onClick={closeSideMenu}>
+                    Liked songs
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/Page2" onClick={closeSideMenu}>
-                    Hello world
+                  <NavLink to="/PlaylistsPage" onClick={closeSideMenu}>
+                    Playlists
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/Page3" onClick={closeSideMenu}>
-                    Contacts
+                  <NavLink to="/AlbumsPage" onClick={closeSideMenu}>
+                    Albums
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/Page4" onClick={closeSideMenu}>
-                    About
+                  <NavLink to="/ArtistsPage" onClick={closeSideMenu}>
+                    Artists
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/Page5" onClick={closeSideMenu}>
-                    More
+                  <NavLink to="/PodcastsPage" onClick={closeSideMenu}>
+                    Podcasts
                   </NavLink>
                 </li>
               </ul>

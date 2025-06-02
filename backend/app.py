@@ -20,19 +20,19 @@ app.secret_key = os.urandom(24)
 # Session config
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = './flask_session_files'
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 Session(app)
 
 # CORS config
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
+CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
-SCOPE = "user-read-private user-read-email"
+SCOPE = "user-read-private user-read-email user-library-read"
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
@@ -54,18 +54,18 @@ def login():
 @app.route("/callback")
 def callback():
     if not session.get("expecting_callback"):
-        return redirect("http://localhost:3000?error=unexpected_callback")
+        return redirect("http://127.0.0.1:3000?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
 
     error = request.args.get("error")
     if error:
         # The user clicked "Cancel" or another error occurred
-        return redirect("http://localhost:3000?error=access_denied")
+        return redirect("http://127.0.0.1:3000?error=access_denied")
 
     code = request.args.get("code")
     if not code:
-        return redirect("http://localhost:3000?error=no_code")
+        return redirect("http://127.0.0.1:3000?error=no_code")
 
     response = requests.post(
         SPOTIFY_TOKEN_URL,
@@ -80,12 +80,12 @@ def callback():
     )
 
     if response.status_code != 200:
-        return redirect("http://localhost:3000?error=token_failed")
+        return redirect("http://127.0.0.1:3000?error=token_failed")
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
     print("✅ Token:", tokens["access_token"])
-    return redirect("http://localhost:3000")
+    return redirect("http://127.0.0.1:3000")
 
 @app.route("/profile")
 def profile():
@@ -119,6 +119,32 @@ def logout():
     response = jsonify({"message": "Logged out"})
     response.delete_cookie('session')
     return response, 200
+
+@app.route("/liked-songs")
+def liked_songs():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = "https://api.spotify.com/v1/me/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 50, "offset": 0}
+
+    all_tracks = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch liked songs", "details": response.json()}), response.status_code
+
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+
+        url = data.get("next")  # якщо next == None, тоді цикл зупиниться
+        params = None  # При запиті до next URL не передаємо params, бо URL уже містить їх
+
+    return jsonify(all_tracks)
 
 if __name__ == "__main__":
     app.run(port=8888, debug=True)

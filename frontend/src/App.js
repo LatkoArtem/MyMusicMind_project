@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./Header";
-import Home from "./Home";
-import Page2 from "./Page2";
-import Page3 from "./Page3";
-import Page4 from "./Page4";
-import Page5 from "./Page5";
-import ProfilePage from "./ProfilePage";
+import Home from "./header_pages/Home";
+import Page2 from "./header_pages/Page2";
+import Page3 from "./header_pages/Page3";
+import Page4 from "./header_pages/Page4";
+import Page5 from "./header_pages/Page5";
+import ProfilePage from "./header_pages/ProfilePage";
+
+import LikedSongsPage from "./sidebar_pages/LikedSongsPage";
+import PlaylistsPage from "./sidebar_pages/PlaylistsPage";
+import AlbumsPage from "./sidebar_pages/AlbumsPage";
+import ArtistsPage from "./sidebar_pages/ArtistsPage";
+import PodcastsPage from "./sidebar_pages/PodcastsPage";
+
 import "./App.css";
 import Background from "../src/images/Background.png";
 
@@ -74,6 +81,13 @@ function App() {
             <Route path="/Page4" element={<Page4 />} />
             <Route path="/Page5" element={<Page5 />} />
             <Route path="/Profile" element={<ProfilePage profile={profile} onUpdate={handleProfileUpdate} />} />
+
+            {/* Sidebar routes */}
+            <Route path="/LikedSongsPage" element={<LikedSongsPage />} />
+            <Route path="/PlaylistsPage" element={<PlaylistsPage />} />
+            <Route path="/AlbumsPage" element={<AlbumsPage />} />
+            <Route path="/ArtistsPage" element={<ArtistsPage />} />
+            <Route path="/PodcastsPage" element={<PodcastsPage />} />
           </Routes>
         </main>
       </div>

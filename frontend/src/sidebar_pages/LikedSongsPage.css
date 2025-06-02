@@ -1,0 +1,257 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+h1 {
+  color: white;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+h3 {
+  color: #939393;
+}
+
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+
+.song-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  color: #fff;
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.song-card:hover {
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.album-cover {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.song-info {
+  margin-top: 8px;
+}
+
+.track-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.track-artists {
+  font-size: 0.75rem;
+  color: #bbb;
+}
+
+/* Side panel */
+
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100%;
+  background: #1e1e1e;
+  color: white;
+  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  overflow-y: auto;
+  z-index: 999;
+  animation: slideIn2 0.3s ease-out;
+}
+
+@keyframes slideIn2 {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: pointer;
+}
+
+.details-cover {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.lyrics-section {
+  margin-top: 1.5rem;
+}
+
+.lyrics-section h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.lyrics-text {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+/* Пошуковий інпут */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 16px;
+  flex-wrap: wrap; /* на випадок вузького екрану */
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  color: white;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  outline: none;
+  font-size: 1rem;
+}
+
+.search-input::placeholder {
+  color: #ccc;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-toggle button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.view-toggle button.active,
+.view-toggle button:hover {
+  background: rgba(255, 255, 255, 0.329);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.list-view {
+  color: white;
+}
+
+.view-toggle button .icon {
+  width: 24px;
+  height: 24px;
+  stroke: white;
+}
+
+/* Список пісень (list view) */
+.songs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.song-row {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.song-row:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.song-row .album-cover {
+  width: 60px;
+  height: 60px;
+  margin-right: 1rem;
+  border-radius: 6px;
+}
+
+/* Кнопка Spotify */
+.spotify-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #1db954;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 1rem;
+  transition: background 0.2s ease;
+}
+
+.spotify-button:hover {
+  background-color: #1ed760;
+}
+
+.spotify-button svg {
+  fill: white;
+}
