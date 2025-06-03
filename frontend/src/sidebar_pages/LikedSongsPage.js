@@ -14,7 +14,24 @@ const LikedSongsPage = () => {
       .get("http://127.0.0.1:8888/liked-songs", { withCredentials: true })
       .then((res) => setLikedSongs(res.data))
       .catch((err) => setError(err.response?.data || "Error fetching liked songs"));
+
+    axios
+      .get("http://127.0.0.1:8888/profile", { withCredentials: true })
+      .then((res) => {
+        const savedMode = res.data.viewMode;
+        if (savedMode === "grid" || savedMode === "list") {
+          setViewMode(savedMode);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch profile viewMode:", err));
   }, []);
+
+  const changeViewMode = (mode) => {
+    setViewMode(mode);
+    axios
+      .post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true })
+      .catch((err) => console.warn("Could not save view mode", err));
+  };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
   if (!likedSongs) return <div>Loading liked songs...</div>;
@@ -45,7 +62,6 @@ const LikedSongsPage = () => {
               d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
             />
           </svg>
-
           <input
             type="text"
             placeholder="Search songs or artists"
@@ -56,7 +72,7 @@ const LikedSongsPage = () => {
         </div>
 
         <div className="view-toggle">
-          <button onClick={() => setViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
+          <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -72,7 +88,7 @@ const LikedSongsPage = () => {
               />
             </svg>
           </button>
-          <button onClick={() => setViewMode("list")} className={viewMode === "list" ? "active" : ""}>
+          <button onClick={() => changeViewMode("list")} className={viewMode === "list" ? "active" : ""}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -126,7 +142,6 @@ const LikedSongsPage = () => {
             {Math.floor(selectedTrack.duration_ms / 60000)}:
             {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
           </p>
-
           <a
             href={selectedTrack.external_urls.spotify}
             target="_blank"
@@ -138,7 +153,6 @@ const LikedSongsPage = () => {
             </svg>
             Open in Spotify
           </a>
-
           <div className="lyrics-section">
             <h4>Lyrics (sample)</h4>
             <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>

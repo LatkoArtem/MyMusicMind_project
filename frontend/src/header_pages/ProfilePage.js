@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./ProfilePage.css";
 
-const ProfilePage = ({ profile, onUpdate }) => {
+const ProfilePage = ({ profile }) => {
   const initialAvatar = profile?.avatar || profile?.images?.[0]?.url || null;
 
   const [formData, setFormData] = useState({

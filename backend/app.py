@@ -141,8 +141,72 @@ def liked_songs():
         all_tracks["items"].extend(data.get("items", []))
         all_tracks["total"] = data.get("total", 0)
 
-        url = data.get("next")  # якщо next == None, тоді цикл зупиниться
-        params = None  # При запиті до next URL не передаємо params, бо URL уже містить їх
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_tracks)
+
+@app.route("/viewmode", methods=["POST"])
+def update_viewmode():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    viewmode = data.get("viewMode")
+    if viewmode not in ["grid", "list"]:
+        return jsonify({"error": "Invalid view mode"}), 400
+
+    if os.path.exists(PROFILE_PATH):
+        with open(PROFILE_PATH) as f:
+            profile_data = json.load(f)
+    else:
+        profile_data = {}
+
+    profile_data["viewMode"] = viewmode
+
+    with open(PROFILE_PATH, "w") as f:
+        json.dump(profile_data, f)
+
+    return jsonify({"message": "View mode updated"})
+
+@app.route("/playlists")
+def playlists():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    response = requests.get(
+        "https://api.spotify.com/v1/me/playlists",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={"limit": 50},
+    )
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch playlists"}), response.status_code
+
+    data = response.json()
+    return jsonify(data)
+
+@app.route("/playlists/<playlist_id>/tracks")
+def playlist_tracks(playlist_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 100}
+
+    all_tracks = {"items": [], "total": 0}
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch playlist tracks"}), response.status_code
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+        url = data.get("next")
+        params = None
 
     return jsonify(all_tracks)
 

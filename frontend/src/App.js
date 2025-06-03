@@ -48,7 +48,10 @@ function App() {
       method: "POST",
       credentials: "include",
     })
-      .then(() => setProfile(null))
+      .then(() => {
+        setProfile(null);
+        window.location.href = "/";
+      })
       .catch((err) => console.error("Logout failed:", err));
   };
 
