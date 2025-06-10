@@ -6,9 +6,12 @@ const PlaylistsPage = () => {
   const [playlists, setPlaylists] = useState(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [playlistTracks, setPlaylistTracks] = useState(null);
-  const [showTracks, setShowTracks] = useState(false);
+  const [showPlaylists, setShowPlaylists] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
+  const [playlistDetails, setPlaylistDetails] = useState(null);
 
   useEffect(() => {
     axios
@@ -17,39 +20,140 @@ const PlaylistsPage = () => {
         setPlaylists(res.data.items || []);
       })
       .catch((err) => setError(err.response?.data || "Error fetching playlists"));
+
+    axios
+      .get("http://127.0.0.1:8888/profile", { withCredentials: true })
+      .then((res) => {
+        const savedMode = res.data.viewMode;
+        if (savedMode === "grid" || savedMode === "list") {
+          setViewMode(savedMode);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch profile viewMode:", err));
   }, []);
 
+  const changeViewMode = (mode) => {
+    setViewMode(mode);
+    axios
+      .post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true })
+      .catch((err) => console.warn("Could not save view mode", err));
+  };
+
   const fetchPlaylistTracks = (playlist) => {
-    setShowTracks(true);
+    setShowPlaylists(true);
     setSelectedPlaylist(playlist);
+    setSearchTerm("");
     axios
       .get(`http://127.0.0.1:8888/playlists/${playlist.id}/tracks`, { withCredentials: true })
       .then((res) => setPlaylistTracks(res.data.items))
-      .catch((err) => setError(err.response?.data || "Error fetching tracks"));
+      .catch((err) => console.error(err));
+
+    axios
+      .get(`http://127.0.0.1:8888/playlists/${playlist.id}`, { withCredentials: true })
+      .then((res) => setPlaylistDetails(res.data))
+      .catch((err) => console.warn("Error fetching playlist details:", err));
   };
 
   const handleBackToPlaylists = () => {
     setSelectedPlaylist(null);
     setPlaylistTracks(null);
-    setShowTracks(false);
+    setShowPlaylists(false);
     setSelectedTrack(null);
+    setPlaylistDetails(null);
+    setSearchTerm("");
   };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
   if (!playlists) return <div>Loading playlists...</div>;
 
+  const filteredPlaylists = playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTracks =
+    playlistTracks?.filter(
+      ({ track }) =>
+        track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
+
   return (
-    <div className="liked-songs-page">
-      {!showTracks ? (
+    <div className="page-container">
+      {!showPlaylists && <h1>Playlists</h1>}
+
+      {!showPlaylists ? (
         <>
-          <h1 className="page-title">Playlists</h1>
-          <div className="songs-grid">
-            {playlists.map((playlist) => (
-              <div key={playlist.id} className="song-card" onClick={() => fetchPlaylistTracks(playlist)}>
+          <div className="top-bar">
+            <div className="search-container">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="white"
+                className="search-icon"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+
+            <div className="view-toggle">
+              <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  className="icon"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+                  />
+                </svg>
+              </button>
+              <button onClick={() => changeViewMode("list")} className={viewMode === "list" ? "active" : ""}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  className="icon"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
+            {filteredPlaylists.map((playlist) => (
+              <div
+                key={playlist.id}
+                className={viewMode === "grid" ? "song-card" : "song-row"}
+                onClick={() => fetchPlaylistTracks(playlist)}
+              >
                 <img src={playlist.images?.[0]?.url} alt={playlist.name} className="album-cover" />
                 <div className="track-info">
                   <div className="track-name">{playlist.name}</div>
-                  <div className="track-artists">{playlist.tracks.total} songs</div>
+                  <div className="track-artists">{playlist.tracks.total} tracks</div>
                 </div>
               </div>
             ))}
@@ -61,31 +165,112 @@ const PlaylistsPage = () => {
             <button className="back-button" onClick={handleBackToPlaylists}>
               ⬅ Back to playlists
             </button>
-
             <div className="playlist-header">
-              <img src={selectedPlaylist.images?.[0]?.url} alt={selectedPlaylist.name} className="album-cover" />
-              <div className="playlist-details">
-                <h2 className="track-name">{selectedPlaylist.name}</h2>
-                <p className="track-description">{selectedPlaylist.description}</p>
-                <p className="track-artists">{selectedPlaylist.tracks.total} tracks</p>
+              <div className="playlist-left">
+                <img src={selectedPlaylist.images?.[0]?.url} alt={selectedPlaylist.name} className="album-cover" />
+
+                {playlistDetails && (
+                  <div className="playlist-badges">
+                    <div className="badge">
+                      <span className="badge-label">Owner</span>
+                      <p>{playlistDetails.owner.display_name}</p>
+                    </div>
+                    <div className="badge">
+                      <span className="badge-label">Public</span>
+                      <p>{playlistDetails.public ? "Yes" : "No"}</p>
+                    </div>
+                    <div className="badge">
+                      <span className="badge-label">Collaborative</span>
+                      <p>{playlistDetails.collaborative ? "Yes" : "No"}</p>
+                    </div>
+                    <div className="badge">
+                      <span className="badge-label">Tracks</span>
+                      <p>{playlistDetails.tracks.total}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="playlist-right">
+                <h2 className="playlist-info-title">{selectedPlaylist.name}</h2>
+                <p className="playlist-analysis">Playlist Analysis</p>
               </div>
             </div>
           </div>
+          <div className="top-bar">
+            <div className="search-container">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="white"
+                className="search-icon"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
 
-          <div className="songs-list">
-            {playlistTracks ? (
-              playlistTracks.map(({ track }) => (
-                <div key={track.id} className="song-row" onClick={() => setSelectedTrack(track)}>
-                  <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
-                  <div className="track-info">
-                    <div className="track-name">{track.name}</div>
-                    <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
-                  </div>
+            <div className="view-toggle">
+              <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  className="icon"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+                  />
+                </svg>
+              </button>
+              <button onClick={() => changeViewMode("list")} className={viewMode === "list" ? "active" : ""}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  className="icon"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
+            {filteredTracks.map(({ track }, index) => (
+              <div
+                key={`${track.id}-${index}`}
+                className={viewMode === "grid" ? "song-card" : "song-row"}
+                onClick={() => setSelectedTrack(track)}
+              >
+                <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
+                <div className="track-info">
+                  <div className="track-name">{track.name}</div>
+                  <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
                 </div>
-              ))
-            ) : (
-              <p>Loading tracks...</p>
-            )}
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -105,7 +290,7 @@ const PlaylistsPage = () => {
             <strong>Release date:</strong> {selectedTrack.album.release_date}
           </p>
           <p>
-            <strong>Duration:</strong>
+            <strong>Duration: </strong>
             {Math.floor(selectedTrack.duration_ms / 60000)}:
             {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
           </p>

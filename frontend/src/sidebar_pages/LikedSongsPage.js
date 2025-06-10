@@ -138,7 +138,7 @@ const LikedSongsPage = () => {
             <strong>Release date:</strong> {selectedTrack.album.release_date}
           </p>
           <p>
-            <strong>Duration:</strong>
+            <strong>Duration: </strong>
             {Math.floor(selectedTrack.duration_ms / 60000)}:
             {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
           </p>

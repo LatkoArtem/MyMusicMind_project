@@ -32,7 +32,7 @@ CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
-SCOPE = "user-read-private user-read-email user-library-read"
+SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative"
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
@@ -187,6 +187,22 @@ def playlists():
     data = response.json()
     return jsonify(data)
 
+@app.route("/playlists/<playlist_id>")
+def get_playlist_details(playlist_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch playlist details"}), response.status_code
+
+    return jsonify(response.json())
+
 @app.route("/playlists/<playlist_id>/tracks")
 def playlist_tracks(playlist_id):
     access_token = session.get("access_token")
@@ -195,13 +211,81 @@ def playlist_tracks(playlist_id):
 
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"limit": 100}
+    params = {"limit": 50}
 
     all_tracks = {"items": [], "total": 0}
     while url:
         response = requests.get(url, headers=headers, params=params)
         if response.status_code != 200:
             return jsonify({"error": "Failed to fetch playlist tracks"}), response.status_code
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_tracks)
+
+@app.route("/albums")
+def albums():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = "https://api.spotify.com/v1/me/albums"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 50, "offset": 0}
+
+    all_albums = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch albums", "details": response.json()}), response.status_code
+
+        data = response.json()
+
+        albums_only = [item["album"] for item in data.get("items", [])]
+
+        all_albums["items"].extend(albums_only)
+        all_albums["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_albums)
+
+@app.route("/albums/<album_id>")
+def get_album_details(album_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/albums/{album_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch album details", "details": response.json()}), response.status_code
+
+    return jsonify(response.json())
+
+@app.route("/albums/<album_id>/tracks")
+def album_tracks(album_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 50}
+
+    all_tracks = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch album tracks"}), response.status_code
         data = response.json()
         all_tracks["items"].extend(data.get("items", []))
         all_tracks["total"] = data.get("total", 0)
