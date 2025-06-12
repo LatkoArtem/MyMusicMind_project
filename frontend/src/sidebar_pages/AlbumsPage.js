@@ -167,7 +167,6 @@ const AlbumsPage = () => {
             <div className="playlist-header">
               <div className="playlist-left">
                 <img src={selectedAlbum?.images?.[0]?.url} alt={selectedAlbum?.name} className="album-cover" />
-
                 {albumDetails && (
                   <div className="playlist-badges">
                     <div className="badge">
@@ -298,21 +297,18 @@ const AlbumsPage = () => {
           })()}
 
           <div className="track-details">
-            <h2 className="track-title">{selectedTrack.name}</h2>
-            <h3 className="track-artists">
-              {selectedTrack.artists?.map((a) => a.name).join(", ") || "Unknown Artist"}
-            </h3>
+            <h2>{selectedTrack.name}</h2>
+            <h3>{selectedTrack.artists?.map((a) => a.name).join(", ") || "Unknown Artist"}</h3>
             <div className="track-meta">
               <p>
-                <span className="meta-label">Album:</span>{" "}
-                {selectedTrack.album?.name || albumDetails?.name || "Unknown Album"}
+                <strong>Album:</strong> {selectedTrack.album?.name || albumDetails?.name || "Unknown Album"}
               </p>
               <p>
-                <span className="meta-label">Release date:</span>{" "}
+                <strong>Release date:</strong>{" "}
                 {selectedTrack.album?.release_date || albumDetails?.release_date || "Unknown"}
               </p>
               <p>
-                <span className="meta-label">Duration:</span> {Math.floor(selectedTrack.duration_ms / 60000)}:
+                <strong>Duration:</strong> {Math.floor(selectedTrack.duration_ms / 60000)}:
                 {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
               </p>
             </div>

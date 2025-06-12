@@ -32,7 +32,7 @@ CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
-SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative"
+SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control"
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
@@ -293,6 +293,137 @@ def album_tracks(album_id):
         params = None
 
     return jsonify(all_tracks)
+
+@app.route("/artists")
+def artists():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = "https://api.spotify.com/v1/me/following"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"type": "artist", "limit": 50}
+
+    all_artists = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch artists", "details": response.json()}), response.status_code
+
+        data = response.json()
+        artists_data = data.get("artists", {})
+        all_artists["items"].extend(artists_data.get("items", []))
+        all_artists["total"] = artists_data.get("total", 0)
+
+        url = artists_data.get("next")
+        params = None
+
+    return jsonify(all_artists)
+
+@app.route("/artists/<artist_id>")
+def get_artist_details(artist_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/artists/{artist_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch artist details"}), response.status_code
+
+    return jsonify(response.json())
+
+
+@app.route("/artists/<artist_id>/top-tracks")
+def get_artist_top_tracks(artist_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/artists/{artist_id}/top-tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"market": "US"}
+
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch artist top tracks"}), response.status_code
+
+    return jsonify(response.json())
+
+@app.route("/podcasts")
+def podcasts():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = "https://api.spotify.com/v1/me/shows"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 50, "offset": 0}
+
+    all_podcasts = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch podcasts", "details": response.json()}), response.status_code
+
+        data = response.json()
+
+        shows_only = [item["show"] for item in data.get("items", [])]
+        all_podcasts["items"].extend(shows_only)
+        all_podcasts["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_podcasts)
+
+
+@app.route("/podcasts/<podcast_id>")
+def get_podcast_details(podcast_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/shows/{podcast_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"market": "US"}
+
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch podcast details", "details": response.json()}), response.status_code
+
+    return jsonify(response.json())
+
+
+@app.route("/podcasts/<podcast_id>/episodes")
+def get_podcast_episodes(podcast_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    url = f"https://api.spotify.com/v1/shows/{podcast_id}/episodes"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"limit": 50, "offset": 0, "market": "US"}
+
+    all_episodes = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch podcast episodes", "details": response.json()}), response.status_code
+
+        data = response.json()
+        all_episodes["items"].extend(data.get("items", []))
+        all_episodes["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_episodes)
 
 if __name__ == "__main__":
     app.run(port=8888, debug=True)
