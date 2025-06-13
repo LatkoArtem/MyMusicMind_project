@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import "./LikedSongsPage.css";
 
 const ArtistsPage = () => {
-  const [artists, setArtists] = useState(null);
+  const [artists, setArtists] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedArtist, setSelectedArtist] = useState(null);
-  const [artistTracks, setArtistTracks] = useState(null);
+  const [artistTracks, setArtistTracks] = useState([]);
   const [showArtists, setShowArtists] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
@@ -17,7 +18,8 @@ const ArtistsPage = () => {
     axios
       .get("http://127.0.0.1:8888/artists", { withCredentials: true })
       .then((res) => setArtists(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching artists"));
+      .catch((err) => setError(err.response?.data || "Error fetching artists"))
+      .finally(() => setIsLoading(false));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
@@ -96,7 +98,6 @@ const ArtistsPage = () => {
   }
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
-  if (!artists) return <div>Loading artists...</div>;
 
   const filteredArtists = artists.filter((a) => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredTracks =
@@ -104,10 +105,9 @@ const ArtistsPage = () => {
 
   return (
     <div className="page-container">
-      {!showArtists && <h1>Artists</h1>}
-
       {!showArtists ? (
         <>
+          <h1>Artists</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -168,22 +168,25 @@ const ArtistsPage = () => {
               </button>
             </div>
           </div>
-
-          <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredArtists.map((artist) => (
-              <div
-                key={artist.id}
-                className={viewMode === "grid" ? "song-card" : "song-row"}
-                onClick={() => fetchArtistTracks(artist)}
-              >
-                <img src={artist.images?.[0]?.url} alt={artist.name} className="album-cover artist-cover" />
-                <div className="track-info">
-                  <div className="track-name">{artist.name}</div>
-                  <div className="track-artists">Followers: {artist.followers?.total.toLocaleString()}</div>
+          {isLoading ? (
+            <div>Loading artists...</div>
+          ) : (
+            <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
+              {filteredArtists.map((artist) => (
+                <div
+                  key={artist.id}
+                  className={viewMode === "grid" ? "song-card" : "song-row"}
+                  onClick={() => fetchArtistTracks(artist)}
+                >
+                  <img src={artist.images?.[0]?.url} alt={artist.name} className="album-cover artist-cover" />
+                  <div className="track-info">
+                    <div className="track-name">{artist.name}</div>
+                    <div className="track-artists">Followers: {artist.followers?.total.toLocaleString()}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>

@@ -9,6 +9,7 @@ import Page5 from "./header_pages/Page5";
 import ProfilePage from "./header_pages/ProfilePage";
 
 import LikedSongsPage from "./sidebar_pages/LikedSongsPage";
+import LikedEpisodesPage from "./sidebar_pages/LikedEpisodesPage";
 import PlaylistsPage from "./sidebar_pages/PlaylistsPage";
 import AlbumsPage from "./sidebar_pages/AlbumsPage";
 import ArtistsPage from "./sidebar_pages/ArtistsPage";
@@ -87,6 +88,7 @@ function App() {
 
             {/* Sidebar routes */}
             <Route path="/LikedSongsPage" element={<LikedSongsPage />} />
+            <Route path="/LikedEpisodesPage" element={<LikedEpisodesPage />} />
             <Route path="/PlaylistsPage" element={<PlaylistsPage />} />
             <Route path="/AlbumsPage" element={<AlbumsPage />} />
             <Route path="/ArtistsPage" element={<ArtistsPage />} />

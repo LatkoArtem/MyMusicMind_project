@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import "./LikedSongsPage.css";
 
 const PodcastsPage = () => {
-  const [podcasts, setPodcasts] = useState(null);
+  const [podcasts, setPodcasts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPodcast, setSelectedPodcast] = useState(null);
-  const [episodes, setEpisodes] = useState(null);
+  const [episodes, setEpisodes] = useState([]);
   const [showPodcasts, setShowPodcasts] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [error, setError] = useState(null);
@@ -17,7 +18,8 @@ const PodcastsPage = () => {
     axios
       .get("http://127.0.0.1:8888/podcasts", { withCredentials: true })
       .then((res) => setPodcasts(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching podcasts"));
+      .catch((err) => setError(err.response?.data || "Error fetching podcasts"))
+      .finally(() => setIsLoading(false));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
@@ -57,17 +59,28 @@ const PodcastsPage = () => {
   };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
-  if (!podcasts) return <div>Loading podcasts...</div>;
 
-  const filteredPodcasts = podcasts.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredEpisodes = episodes?.filter((ep) => ep.name.toLowerCase().includes(searchTerm.toLowerCase())) || [];
+  const filteredPodcasts = podcasts.filter((p) => {
+    const name = p.name?.toLowerCase() || "";
+    const publisher = p.publisher?.toLowerCase() || "";
+    const term = searchTerm.toLowerCase();
+    return name.includes(term) || publisher.includes(term);
+  });
+
+  const filteredEpisodes =
+    episodes?.filter((ep) => {
+      const epName = ep.name?.toLowerCase() || "";
+      const showName = selectedPodcast.name.toLowerCase() || "";
+      const publisher = selectedPodcast.publisher.toLowerCase() || "";
+      const term = searchTerm.toLowerCase();
+      return epName.includes(term) || showName.includes(term) || publisher.includes(term);
+    }) || [];
 
   return (
     <div className="page-container">
-      {!showPodcasts && <h1>Podcasts</h1>}
-
       {!showPodcasts ? (
         <>
+          <h1>Podcasts</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -127,26 +140,29 @@ const PodcastsPage = () => {
               </button>
             </div>
           </div>
-
-          <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredPodcasts.map((pod) => (
-              <div
-                key={pod.id}
-                className={viewMode === "grid" ? "song-card" : "song-row"}
-                onClick={() => fetchPodcast(pod)}
-              >
-                <img
-                  src={pod.images?.reduce((largest, img) => (img.width > (largest?.width ?? 0) ? img : largest))?.url}
-                  alt={pod.name}
-                  className="album-cover"
-                />
-                <div className="track-info">
-                  <div className="track-name">{pod.name}</div>
-                  <div className="track-artists">{pod.publisher}</div>
+          {isLoading ? (
+            <div>Loading podcasts...</div>
+          ) : (
+            <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
+              {filteredPodcasts.map((pod) => (
+                <div
+                  key={pod.id}
+                  className={viewMode === "grid" ? "song-card" : "song-row"}
+                  onClick={() => fetchPodcast(pod)}
+                >
+                  <img
+                    src={pod.images?.reduce((largest, img) => (img.width > (largest?.width ?? 0) ? img : largest))?.url}
+                    alt={pod.name}
+                    className="album-cover"
+                  />
+                  <div className="track-info">
+                    <div className="track-name">{pod.name}</div>
+                    <div className="track-artists">{pod.publisher}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -278,13 +294,16 @@ const PodcastsPage = () => {
             <h2>{selectedEpisode.name}</h2>
             <h3>{selectedPodcast.publisher}</h3>
             <div className="track-meta">
-              <p className="episode-description">
-                <strong>Description: </strong>
-                {selectedEpisode.description}
+              <p>
+                <strong>Release date:</strong> {selectedEpisode.release_date}
               </p>
               <p>
                 <strong>Duration:</strong> {Math.floor(selectedEpisode.duration_ms / 60000)}:
                 {String(Math.floor((selectedEpisode.duration_ms % 60000) / 1000)).padStart(2, "0")}
+              </p>
+              <p className="episode-description">
+                <strong>Description: </strong>
+                {selectedEpisode.description}
               </p>
             </div>
             {selectedEpisode.external_urls?.spotify && (

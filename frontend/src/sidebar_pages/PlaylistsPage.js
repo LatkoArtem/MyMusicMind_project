@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import "./LikedSongsPage.css";
 
 const PlaylistsPage = () => {
-  const [playlists, setPlaylists] = useState(null);
+  const [playlists, setPlaylists] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [playlistTracks, setPlaylistTracks] = useState(null);
+  const [playlistTracks, setPlaylistTracks] = useState([]);
   const [showPlaylists, setShowPlaylists] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
@@ -19,7 +20,8 @@ const PlaylistsPage = () => {
       .then((res) => {
         setPlaylists(res.data.items || []);
       })
-      .catch((err) => setError(err.response?.data || "Error fetching playlists"));
+      .catch((err) => setError(err.response?.data || "Error fetching playlists"))
+      .finally(() => setIsLoading(false));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
@@ -64,7 +66,6 @@ const PlaylistsPage = () => {
   };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
-  if (!playlists) return <div>Loading playlists...</div>;
 
   const filteredPlaylists = playlists.filter((playlist) =>
     playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -79,10 +80,9 @@ const PlaylistsPage = () => {
 
   return (
     <div className="page-container">
-      {!showPlaylists && <h1>Playlists</h1>}
-
       {!showPlaylists ? (
         <>
+          <h1>Playlists</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -143,21 +143,25 @@ const PlaylistsPage = () => {
               </button>
             </div>
           </div>
-          <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredPlaylists.map((playlist) => (
-              <div
-                key={playlist.id}
-                className={viewMode === "grid" ? "song-card" : "song-row"}
-                onClick={() => fetchPlaylistTracks(playlist)}
-              >
-                <img src={playlist.images?.[0]?.url} alt={playlist.name} className="album-cover" />
-                <div className="track-info">
-                  <div className="track-name">{playlist.name}</div>
-                  <div className="track-artists">{playlist.tracks.total} tracks</div>
+          {isLoading ? (
+            <div>Loading playlists...</div>
+          ) : (
+            <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
+              {filteredPlaylists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className={viewMode === "grid" ? "song-card" : "song-row"}
+                  onClick={() => fetchPlaylistTracks(playlist)}
+                >
+                  <img src={playlist.images?.[0]?.url} alt={playlist.name} className="album-cover" />
+                  <div className="track-info">
+                    <div className="track-name">{playlist.name}</div>
+                    <div className="track-artists">{playlist.tracks.total} tracks</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>

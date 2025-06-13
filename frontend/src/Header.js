@@ -185,6 +185,11 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                   </NavLink>
                 </li>
                 <li>
+                  <NavLink to="/LikedEpisodesPage" onClick={closeSideMenu}>
+                    Liked episodes
+                  </NavLink>
+                </li>
+                <li>
                   <NavLink to="/PlaylistsPage" onClick={closeSideMenu}>
                     Playlists
                   </NavLink>
