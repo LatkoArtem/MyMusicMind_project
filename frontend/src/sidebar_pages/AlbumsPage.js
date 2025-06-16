@@ -67,7 +67,11 @@ const AlbumsPage = () => {
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredAlbums = albums.filter((album) => album.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredAlbums = albums.filter(
+    (album) =>
+      album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      album.artists?.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const filteredTracks =
     albumTracks?.filter(
