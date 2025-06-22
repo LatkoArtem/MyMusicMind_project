@@ -1,6 +1,8 @@
 import os
+import re
 import requests
 import json
+from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
 from flask_cors import CORS
 from flask_session import Session
@@ -465,6 +467,87 @@ def get_saved_episodes():
         params = None
 
     return jsonify(all_episodes)
+
+############## GENIUS LYRICS PARSING ##############
+GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
+HEADERS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
+
+# Search for songs on Genius
+def search_genius(song_title, artist_name):
+    base_url = "https://api.genius.com/search"
+    query = f"{song_title} {artist_name}"
+    response = requests.get(base_url, params={"q": query}, headers=HEADERS)
+
+    if response.status_code != 200:
+        return None
+
+    data = response.json()
+    hits = data["response"]["hits"]
+    for hit in hits:
+        if artist_name.lower() in hit["result"]["primary_artist"]["name"].lower():
+            return hit["result"]["url"]
+    return None
+
+def scrape_lyrics_from_url(url):
+    page = requests.get(url)
+    if page.status_code != 200:
+        return None
+
+    soup = BeautifulSoup(page.text, "html.parser")
+    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
+
+    lyrics_lines = []
+
+    for block in lyrics_blocks:
+        for excluded in block.select('[data-exclude-from-selection="true"]'):
+            excluded.decompose()
+
+        for element in block.children:
+            if getattr(element, "name", None) == "p":
+                text = element.get_text(separator="\n").strip()
+                if text:
+                    lyrics_lines.append(text)
+            elif isinstance(element, str):
+                text = element.strip()
+                if text:
+                    lyrics_lines.append(text)
+            else:
+                text = element.get_text(separator="\n").strip()
+                if text:
+                    lyrics_lines.append(text)
+
+    full_text = "\n".join(lyrics_lines)
+
+    full_text = re.sub(r"\[\s*([^]]*?\n)*?[^]]*?\s*\]", "", full_text, flags=re.MULTILINE)
+
+    cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
+
+    return cleaned_lyrics if cleaned_lyrics else None
+
+# Main endpoint
+@app.route("/get_lyrics", methods=["GET"])
+def get_lyrics():
+    song = request.args.get("song")
+    artist = request.args.get("artist")
+
+    if not song or not artist:
+        return jsonify({"error": "Missing song or artist"}), 400
+
+    genius_url = search_genius(song, artist)
+    if not genius_url:
+        return jsonify({"error": "Song not found on Genius"}), 404
+
+    lyrics = scrape_lyrics_from_url(genius_url)
+    if not lyrics:
+        return jsonify({"error": "Lyrics not found or could not be parsed"}), 500
+
+    return jsonify({
+        "song": song,
+        "artist": artist,
+        "lyrics": lyrics,
+        "source_url": genius_url
+    })
+############## GENIUS LYRICS PARSING END ##############
 
 if __name__ == "__main__":
     app.run(port=8888, debug=True)

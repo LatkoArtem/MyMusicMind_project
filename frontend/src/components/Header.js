@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, Link } from "react-router-dom";
-import MyMusicMindLogo from "../src/images/MyMusicMindLogo2_crop.png";
-import ProfileIcon from "../src/images/ProfileIcon.png";
-import "./Header.css";
+import MyMusicMindLogo from "../images/MyMusicMindLogo2_crop.png";
+import ProfileIcon from "../images/ProfileIcon.png";
+import "./styles/Header.css";
 
 const Header = ({ profile, onLogin, onLogout, loading }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);

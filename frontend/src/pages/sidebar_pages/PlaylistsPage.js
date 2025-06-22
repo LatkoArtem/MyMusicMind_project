@@ -1,26 +1,26 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import "./styles/LikedSongsPage.css";
 
-const AlbumsPage = () => {
-  const [albums, setAlbums] = useState([]);
+const PlaylistsPage = () => {
+  const [playlists, setPlaylists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [albumTracks, setAlbumTracks] = useState([]);
-  const [showAlbums, setShowAlbums] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [playlistTracks, setPlaylistTracks] = useState([]);
+  const [showPlaylists, setShowPlaylists] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [albumDetails, setAlbumDetails] = useState(null);
+  const [playlistDetails, setPlaylistDetails] = useState(null);
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/albums", { withCredentials: true })
+      .get("http://127.0.0.1:8888/playlists", { withCredentials: true })
       .then((res) => {
-        setAlbums(res.data.items || []);
+        setPlaylists(res.data.items || []);
       })
-      .catch((err) => setError(err.response?.data || "Error fetching albums"))
+      .catch((err) => setError(err.response?.data || "Error fetching playlists"))
       .finally(() => setIsLoading(false));
 
     axios
@@ -41,50 +41,48 @@ const AlbumsPage = () => {
       .catch((err) => console.warn("Could not save view mode", err));
   };
 
-  const fetchAlbumTracks = (album) => {
-    setShowAlbums(true);
-    setSelectedAlbum(album);
+  const fetchPlaylistTracks = (playlist) => {
+    setShowPlaylists(true);
+    setSelectedPlaylist(playlist);
     setSearchTerm("");
     axios
-      .get(`http://127.0.0.1:8888/albums/${album.id}/tracks`, { withCredentials: true })
-      .then((res) => setAlbumTracks(res.data.items))
-      .catch((err) => setError(err.response?.data || "Error fetching tracks"));
+      .get(`http://127.0.0.1:8888/playlists/${playlist.id}/tracks`, { withCredentials: true })
+      .then((res) => setPlaylistTracks(res.data.items))
+      .catch((err) => console.error(err));
 
     axios
-      .get(`http://127.0.0.1:8888/albums/${album.id}`, { withCredentials: true })
-      .then((res) => setAlbumDetails(res.data))
-      .catch((err) => console.warn("Error fetching album details:", err));
+      .get(`http://127.0.0.1:8888/playlists/${playlist.id}`, { withCredentials: true })
+      .then((res) => setPlaylistDetails(res.data))
+      .catch((err) => console.warn("Error fetching playlist details:", err));
   };
 
-  const handleBackToAlbums = () => {
-    setSelectedAlbum(null);
-    setAlbumTracks(null);
-    setShowAlbums(false);
+  const handleBackToPlaylists = () => {
+    setSelectedPlaylist(null);
+    setPlaylistTracks(null);
+    setShowPlaylists(false);
     setSelectedTrack(null);
-    setAlbumDetails(null);
+    setPlaylistDetails(null);
     setSearchTerm("");
   };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredAlbums = albums.filter(
-    (album) =>
-      album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      album.artists?.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredPlaylists = playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredTracks =
-    albumTracks?.filter(
-      (track) =>
+    playlistTracks?.filter(
+      ({ track }) =>
         track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
     ) || [];
 
   return (
     <div className="page-container">
-      {!showAlbums ? (
+      {!showPlaylists ? (
         <>
-          <h1>Albums</h1>
+          <h1>Playlists</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -146,19 +144,19 @@ const AlbumsPage = () => {
             </div>
           </div>
           {isLoading ? (
-            <div>Loading albums...</div>
+            <div>Loading playlists...</div>
           ) : (
             <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-              {filteredAlbums.map((album) => (
+              {filteredPlaylists.map((playlist) => (
                 <div
-                  key={album.id}
+                  key={playlist.id}
                   className={viewMode === "grid" ? "song-card" : "song-row"}
-                  onClick={() => fetchAlbumTracks(album)}
+                  onClick={() => fetchPlaylistTracks(playlist)}
                 >
-                  <img src={album.images?.[0]?.url} alt={album.name} className="album-cover" />
+                  <img src={playlist.images?.[0]?.url} alt={playlist.name} className="album-cover" />
                   <div className="track-info">
-                    <div className="track-name">{album.name}</div>
-                    <div className="track-artists">{album.artists?.map((a) => a.name).join(", ")}</div>
+                    <div className="track-name">{playlist.name}</div>
+                    <div className="track-artists">{playlist.tracks.total} tracks</div>
                   </div>
                 </div>
               ))}
@@ -168,41 +166,41 @@ const AlbumsPage = () => {
       ) : (
         <>
           <div className="playlist-overview">
-            <button className="back-button" onClick={handleBackToAlbums}>
-              ⬅ Back to albums
+            <button className="back-button" onClick={handleBackToPlaylists}>
+              ⬅ Back to playlists
             </button>
             <div className="playlist-header">
               <div className="playlist-left">
-                <img src={selectedAlbum?.images?.[0]?.url} alt={selectedAlbum?.name} className="album-cover" />
-                {albumDetails && (
+                <img src={selectedPlaylist.images?.[0]?.url} alt={selectedPlaylist.name} className="album-cover" />
+
+                {playlistDetails && (
                   <div className="playlist-badges">
                     <div className="badge">
-                      <span className="badge-label">Artist(s)</span>
-                      <p>{albumDetails.artists?.map((a) => a.name).join(", ")}</p>
+                      <span className="badge-label">Owner</span>
+                      <p>{playlistDetails.owner.display_name}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Release Date</span>
-                      <p>{albumDetails.release_date}</p>
+                      <span className="badge-label">Public</span>
+                      <p>{playlistDetails.public ? "Yes" : "No"}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Total Tracks</span>
-                      <p>{albumDetails.total_tracks}</p>
+                      <span className="badge-label">Collaborative</span>
+                      <p>{playlistDetails.collaborative ? "Yes" : "No"}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Label</span>
-                      <p>{albumDetails.label || "N/A"}</p>
+                      <span className="badge-label">Tracks</span>
+                      <p>{playlistDetails.tracks.total}</p>
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="playlist-right">
-                <h2 className="playlist-info-title">{albumDetails?.name}</h2>
-                <p className="playlist-analysis">Album Analysis</p>
+                <h2 className="playlist-info-title">{selectedPlaylist.name}</h2>
+                <p className="playlist-analysis">Playlist Analysis</p>
               </div>
             </div>
           </div>
-
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -263,19 +261,14 @@ const AlbumsPage = () => {
               </button>
             </div>
           </div>
-
           <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredTracks.map((track, index) => (
+            {filteredTracks.map(({ track }, index) => (
               <div
                 key={`${track.id}-${index}`}
                 className={viewMode === "grid" ? "song-card" : "song-row"}
                 onClick={() => setSelectedTrack(track)}
               >
-                <img
-                  src={track.album?.images?.[0]?.url || albumDetails?.images?.[0]?.url}
-                  alt={track.name}
-                  className="album-cover"
-                />
+                <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
                 <div className="track-info">
                   <div className="track-name">{track.name}</div>
                   <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
@@ -291,52 +284,34 @@ const AlbumsPage = () => {
           <button className="close-button" onClick={() => setSelectedTrack(null)}>
             ×
           </button>
-
-          {(() => {
-            let imgUrl = null;
-            if (selectedTrack.album?.images?.length) {
-              imgUrl = selectedTrack.album.images[0].url;
-            } else if (albumDetails?.images?.length) {
-              imgUrl = albumDetails.images[0].url;
-            }
-
-            return imgUrl ? <img src={imgUrl} alt={selectedTrack.name} className="details-cover" /> : null;
-          })()}
-
-          <div className="track-details">
-            <h2>{selectedTrack.name}</h2>
-            <h3>{selectedTrack.artists?.map((a) => a.name).join(", ") || "Unknown Artist"}</h3>
-            <div className="track-meta">
-              <p>
-                <strong>Album:</strong> {selectedTrack.album?.name || albumDetails?.name || "Unknown Album"}
-              </p>
-              <p>
-                <strong>Release date:</strong>{" "}
-                {selectedTrack.album?.release_date || albumDetails?.release_date || "Unknown"}
-              </p>
-              <p>
-                <strong>Duration:</strong> {Math.floor(selectedTrack.duration_ms / 60000)}:
-                {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
-              </p>
-            </div>
-
-            {selectedTrack.external_urls?.spotify && (
-              <a
-                href={selectedTrack.external_urls.spotify}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="spotify-button"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 168 168" fill="white">
-                  <path d="M84 0C37.7 0 0 37.7 0 84s37.7 84 84 84 84-37.7 84-84S130.3 0 84 0zm38.6 120.1c-1.3 2.1-4 2.8-6.1 1.5-16.8-10.2-38-12.5-63-6.8-2.4.5-4.8-1-5.3-3.4-.5-2.4 1-4.8 3.4-5.3 28-6.2 52.3-3.6 71.1 8 2 1.3 2.7 4 1.5 6zm8.7-20.6c-1.6 2.6-5.1 3.4-7.7 1.8-19.2-11.8-48.4-15.2-71.1-8.2-3 .9-6.2-.8-7.1-3.8-.9-3 .8-6.2 3.8-7.1 27.1-8 60.2-4.1 83 10.1 2.6 1.6 3.4 5.1 1.8 7.2zm.2-22.2c-23-13.7-61.2-15-83.5-8.1-3.5 1.1-7.2-.9-8.3-4.4-1.1-3.5.9-7.2 4.4-8.3 26.5-8 69.1-6.5 96.9 9.6 3.1 1.8 4.1 5.8 2.3 8.9-1.7 2.8-5.5 3.9-8.3 2.3z" />
-                </svg>
-                Open in Spotify
-              </a>
-            )}
-            <div className="lyrics-section">
-              <h4>Lyrics (sample)</h4>
-              <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>
-            </div>
+          <img src={selectedTrack.album.images?.[0]?.url} alt={selectedTrack.name} className="details-cover" />
+          <h2>{selectedTrack.name}</h2>
+          <h3>{selectedTrack.artists.map((a) => a.name).join(", ")}</h3>
+          <p>
+            <strong>Album:</strong> {selectedTrack.album.name}
+          </p>
+          <p>
+            <strong>Release date:</strong> {selectedTrack.album.release_date}
+          </p>
+          <p>
+            <strong>Duration: </strong>
+            {Math.floor(selectedTrack.duration_ms / 60000)}:
+            {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
+          </p>
+          <a
+            href={selectedTrack.external_urls.spotify}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="spotify-button"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 168 168" fill="white">
+              <path d="M84 0C37.7 0 0 37.7 0 84s37.7 84 84 84 84-37.7 84-84S130.3 0 84 0zm38.6 120.1c-1.3 2.1-4 2.8-6.1 1.5-16.8-10.2-38-12.5-63-6.8-2.4.5-4.8-1-5.3-3.4-.5-2.4 1-4.8 3.4-5.3 28-6.2 52.3-3.6 71.1 8 2 1.3 2.7 4 1.5 6zm8.7-20.6c-1.6 2.6-5.1 3.4-7.7 1.8-19.2-11.8-48.4-15.2-71.1-8.2-3 .9-6.2-.8-7.1-3.8-.9-3 .8-6.2 3.8-7.1 27.1-8 60.2-4.1 83 10.1 2.6 1.6 3.4 5.1 1.8 7.2zm.2-22.2c-23-13.7-61.2-15-83.5-8.1-3.5 1.1-7.2-.9-8.3-4.4-1.1-3.5.9-7.2 4.4-8.3 26.5-8 69.1-6.5 96.9 9.6 3.1 1.8 4.1 5.8 2.3 8.9-1.7 2.8-5.5 3.9-8.3 2.3z" />
+            </svg>
+            Open in Spotify
+          </a>
+          <div className="lyrics-section">
+            <h4>Lyrics (sample)</h4>
+            <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>
           </div>
         </div>
       )}
@@ -344,4 +319,4 @@ const AlbumsPage = () => {
   );
 };
 
-export default AlbumsPage;
+export default PlaylistsPage;

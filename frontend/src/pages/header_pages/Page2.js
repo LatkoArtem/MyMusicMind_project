@@ -1,4 +1,4 @@
-import "./Page2.css";
+import "./styles/Page2.css";
 
 const Home = () => {
   return <p className="Homepage">Page 2</p>;

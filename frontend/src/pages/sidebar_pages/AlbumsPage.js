@@ -1,86 +1,90 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import "./styles/LikedSongsPage.css";
 
-const PodcastsPage = () => {
-  const [podcasts, setPodcasts] = useState([]);
+const AlbumsPage = () => {
+  const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPodcast, setSelectedPodcast] = useState(null);
-  const [episodes, setEpisodes] = useState([]);
-  const [showPodcasts, setShowPodcasts] = useState(false);
-  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [albumTracks, setAlbumTracks] = useState([]);
+  const [showAlbums, setShowAlbums] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [podcastDetails, setPodcastDetails] = useState(null);
+  const [albumDetails, setAlbumDetails] = useState(null);
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/podcasts", { withCredentials: true })
-      .then((res) => setPodcasts(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching podcasts"))
+      .get("http://127.0.0.1:8888/albums", { withCredentials: true })
+      .then((res) => {
+        setAlbums(res.data.items || []);
+      })
+      .catch((err) => setError(err.response?.data || "Error fetching albums"))
       .finally(() => setIsLoading(false));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
       .then((res) => {
-        const mode = res.data.viewMode;
-        if (["grid", "list"].includes(mode)) setViewMode(mode);
+        const savedMode = res.data.viewMode;
+        if (savedMode === "grid" || savedMode === "list") {
+          setViewMode(savedMode);
+        }
       })
-      .catch(console.warn);
+      .catch((err) => console.warn("Failed to fetch profile viewMode:", err));
   }, []);
 
   const changeViewMode = (mode) => {
     setViewMode(mode);
-    axios.post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true }).catch(console.warn);
+    axios
+      .post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true })
+      .catch((err) => console.warn("Could not save view mode", err));
   };
 
-  const fetchPodcast = (podcast) => {
-    setShowPodcasts(true);
-    setSelectedPodcast(podcast);
+  const fetchAlbumTracks = (album) => {
+    setShowAlbums(true);
+    setSelectedAlbum(album);
     setSearchTerm("");
     axios
-      .get(`http://127.0.0.1:8888/podcasts/${podcast.id}/episodes`, { withCredentials: true })
-      .then((res) => setEpisodes(res.data.items))
-      .catch((err) => setError(err.response?.data || "Error fetching episodes"));
+      .get(`http://127.0.0.1:8888/albums/${album.id}/tracks`, { withCredentials: true })
+      .then((res) => setAlbumTracks(res.data.items))
+      .catch((err) => setError(err.response?.data || "Error fetching tracks"));
+
     axios
-      .get(`http://127.0.0.1:8888/podcasts/${podcast.id}`, { withCredentials: true })
-      .then((res) => setPodcastDetails(res.data))
-      .catch(console.warn);
+      .get(`http://127.0.0.1:8888/albums/${album.id}`, { withCredentials: true })
+      .then((res) => setAlbumDetails(res.data))
+      .catch((err) => console.warn("Error fetching album details:", err));
   };
 
-  const handleBack = () => {
-    setSelectedPodcast(null);
-    setEpisodes(null);
-    setShowPodcasts(false);
-    setSelectedEpisode(null);
-    setPodcastDetails(null);
+  const handleBackToAlbums = () => {
+    setSelectedAlbum(null);
+    setAlbumTracks(null);
+    setShowAlbums(false);
+    setSelectedTrack(null);
+    setAlbumDetails(null);
     setSearchTerm("");
   };
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredPodcasts = podcasts.filter((p) => {
-    const name = p.name?.toLowerCase() || "";
-    const publisher = p.publisher?.toLowerCase() || "";
-    const term = searchTerm.toLowerCase();
-    return name.includes(term) || publisher.includes(term);
-  });
+  const filteredAlbums = albums.filter(
+    (album) =>
+      album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      album.artists?.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  const filteredEpisodes =
-    episodes?.filter((ep) => {
-      const epName = ep.name?.toLowerCase() || "";
-      const showName = selectedPodcast.name.toLowerCase() || "";
-      const publisher = selectedPodcast.publisher.toLowerCase() || "";
-      const term = searchTerm.toLowerCase();
-      return epName.includes(term) || showName.includes(term) || publisher.includes(term);
-    }) || [];
+  const filteredTracks =
+    albumTracks?.filter(
+      (track) =>
+        track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
 
   return (
     <div className="page-container">
-      {!showPodcasts ? (
+      {!showAlbums ? (
         <>
-          <h1>Podcasts</h1>
+          <h1>Albums</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -99,12 +103,13 @@ const PodcastsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search podcasts..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
             </div>
+
             <div className="view-toggle">
               <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
                 <svg
@@ -141,23 +146,19 @@ const PodcastsPage = () => {
             </div>
           </div>
           {isLoading ? (
-            <div>Loading podcasts...</div>
+            <div>Loading albums...</div>
           ) : (
             <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-              {filteredPodcasts.map((pod) => (
+              {filteredAlbums.map((album) => (
                 <div
-                  key={pod.id}
+                  key={album.id}
                   className={viewMode === "grid" ? "song-card" : "song-row"}
-                  onClick={() => fetchPodcast(pod)}
+                  onClick={() => fetchAlbumTracks(album)}
                 >
-                  <img
-                    src={pod.images?.reduce((largest, img) => (img.width > (largest?.width ?? 0) ? img : largest))?.url}
-                    alt={pod.name}
-                    className="album-cover"
-                  />
+                  <img src={album.images?.[0]?.url} alt={album.name} className="album-cover" />
                   <div className="track-info">
-                    <div className="track-name">{pod.name}</div>
-                    <div className="track-artists">{pod.publisher}</div>
+                    <div className="track-name">{album.name}</div>
+                    <div className="track-artists">{album.artists?.map((a) => a.name).join(", ")}</div>
                   </div>
                 </div>
               ))}
@@ -167,37 +168,37 @@ const PodcastsPage = () => {
       ) : (
         <>
           <div className="playlist-overview">
-            <button className="back-button" onClick={handleBack}>
-              ⬅ Back to podcasts
+            <button className="back-button" onClick={handleBackToAlbums}>
+              ⬅ Back to albums
             </button>
             <div className="playlist-header">
               <div className="playlist-left">
-                <img
-                  src={
-                    selectedPodcast.images?.reduce((largest, img) =>
-                      img.width > (largest?.width ?? 0) ? img : largest
-                    )?.url
-                  }
-                  alt={selectedPodcast.name}
-                  className="album-cover"
-                />
-                {podcastDetails && (
+                <img src={selectedAlbum?.images?.[0]?.url} alt={selectedAlbum?.name} className="album-cover" />
+                {albumDetails && (
                   <div className="playlist-badges">
                     <div className="badge">
-                      <span className="badge-label">Publisher</span>
-                      <p>{podcastDetails.publisher}</p>
+                      <span className="badge-label">Artist(s)</span>
+                      <p>{albumDetails.artists?.map((a) => a.name).join(", ")}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Total episodes</span>
-                      <p>{podcastDetails.total_episodes}</p>
+                      <span className="badge-label">Release Date</span>
+                      <p>{albumDetails.release_date}</p>
+                    </div>
+                    <div className="badge">
+                      <span className="badge-label">Total Tracks</span>
+                      <p>{albumDetails.total_tracks}</p>
+                    </div>
+                    <div className="badge">
+                      <span className="badge-label">Label</span>
+                      <p>{albumDetails.label || "N/A"}</p>
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="playlist-right">
-                <h2 className="playlist-info-title">{podcastDetails?.name}</h2>
-                <p className="playlist-analysis">Podcast Analysis</p>
+                <h2 className="playlist-info-title">{albumDetails?.name}</h2>
+                <p className="playlist-analysis">Album Analysis</p>
               </div>
             </div>
           </div>
@@ -220,12 +221,13 @@ const PodcastsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search episodes..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
             </div>
+
             <div className="view-toggle">
               <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
                 <svg
@@ -263,20 +265,20 @@ const PodcastsPage = () => {
           </div>
 
           <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredEpisodes.map((ep, idx) => (
+            {filteredTracks.map((track, index) => (
               <div
-                key={`${ep.id}-${idx}`}
+                key={`${track.id}-${index}`}
                 className={viewMode === "grid" ? "song-card" : "song-row"}
-                onClick={() => setSelectedEpisode(ep)}
+                onClick={() => setSelectedTrack(track)}
               >
                 <img
-                  src={podcastDetails?.images?.[0]?.url || selectedPodcast.images?.[0]?.url}
-                  alt={ep.name}
+                  src={track.album?.images?.[0]?.url || albumDetails?.images?.[0]?.url}
+                  alt={track.name}
                   className="album-cover"
                 />
                 <div className="track-info">
-                  <div className="track-name">{ep.name}</div>
-                  <div className="track-artists">{selectedPodcast.publisher}</div>
+                  <div className="track-name">{track.name}</div>
+                  <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
                 </div>
               </div>
             ))}
@@ -284,31 +286,43 @@ const PodcastsPage = () => {
         </>
       )}
 
-      {selectedEpisode && (
+      {selectedTrack && (
         <div className="side-panel">
-          <button className="close-button" onClick={() => setSelectedEpisode(null)}>
+          <button className="close-button" onClick={() => setSelectedTrack(null)}>
             ×
           </button>
-          <img src={podcastDetails?.images?.[0]?.url} alt={selectedEpisode.name} className="details-cover" />
+
+          {(() => {
+            let imgUrl = null;
+            if (selectedTrack.album?.images?.length) {
+              imgUrl = selectedTrack.album.images[0].url;
+            } else if (albumDetails?.images?.length) {
+              imgUrl = albumDetails.images[0].url;
+            }
+
+            return imgUrl ? <img src={imgUrl} alt={selectedTrack.name} className="details-cover" /> : null;
+          })()}
+
           <div className="track-details">
-            <h2>{selectedEpisode.name}</h2>
-            <h3>{selectedPodcast.publisher}</h3>
+            <h2>{selectedTrack.name}</h2>
+            <h3>{selectedTrack.artists?.map((a) => a.name).join(", ") || "Unknown Artist"}</h3>
             <div className="track-meta">
               <p>
-                <strong>Release date:</strong> {selectedEpisode.release_date}
+                <strong>Album:</strong> {selectedTrack.album?.name || albumDetails?.name || "Unknown Album"}
               </p>
               <p>
-                <strong>Duration:</strong> {Math.floor(selectedEpisode.duration_ms / 60000)}:
-                {String(Math.floor((selectedEpisode.duration_ms % 60000) / 1000)).padStart(2, "0")}
+                <strong>Release date:</strong>{" "}
+                {selectedTrack.album?.release_date || albumDetails?.release_date || "Unknown"}
               </p>
-              <p className="episode-description">
-                <strong>Description: </strong>
-                {selectedEpisode.description}
+              <p>
+                <strong>Duration:</strong> {Math.floor(selectedTrack.duration_ms / 60000)}:
+                {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
               </p>
             </div>
-            {selectedEpisode.external_urls?.spotify && (
+
+            {selectedTrack.external_urls?.spotify && (
               <a
-                href={selectedEpisode.external_urls.spotify}
+                href={selectedTrack.external_urls.spotify}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="spotify-button"
@@ -319,6 +333,10 @@ const PodcastsPage = () => {
                 Open in Spotify
               </a>
             )}
+            <div className="lyrics-section">
+              <h4>Lyrics (sample)</h4>
+              <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>
+            </div>
           </div>
         </div>
       )}
@@ -326,4 +344,4 @@ const PodcastsPage = () => {
   );
 };
 
-export default PodcastsPage;
+export default AlbumsPage;

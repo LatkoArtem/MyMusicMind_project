@@ -1,19 +1,21 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import React, { useEffect, useState } from "react";
+import "./styles/LikedSongsPage.css";
 
-const LikedEpisodesPage = () => {
-  const [likedEpisodes, setLikedEpisodes] = useState(null);
-  const [selectedEpisode, setSelectedEpisode] = useState(null);
+const LikedSongsPage = () => {
+  const [likedSongs, setLikedSongs] = useState(null);
+  const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
+  const [lyrics, setLyrics] = useState(null);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/my-episodes", { withCredentials: true })
-      .then((res) => setLikedEpisodes(res.data))
-      .catch((err) => setError(err.response?.data || "Error fetching liked episodes"));
+      .get("http://127.0.0.1:8888/liked-songs", { withCredentials: true })
+      .then((res) => setLikedSongs(res.data))
+      .catch((err) => setError(err.response?.data || "Error fetching liked songs"));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
@@ -35,18 +37,35 @@ const LikedEpisodesPage = () => {
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredEpisodes =
-    likedEpisodes?.items
-      ?.filter((episode) => episode && episode.name && episode.show && episode.images?.length > 0)
-      .filter((episode) => {
-        const episodeName = episode.name.toLowerCase();
-        const showName = episode.show.name.toLowerCase();
-        return episodeName.includes(searchTerm.toLowerCase()) || showName.includes(searchTerm.toLowerCase());
-      }) || [];
+  const filteredSongs =
+    likedSongs?.items.filter(
+      ({ track }) =>
+        track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
+
+  const fetchLyrics = async (track) => {
+    setIsLoadingLyrics(true);
+    setLyrics(null);
+    try {
+      const response = await axios.get("http://127.0.0.1:8888/get_lyrics", {
+        params: {
+          song: track.name,
+          artist: track.artists[0].name,
+        },
+      });
+      setLyrics(response.data.lyrics);
+    } catch (err) {
+      setLyrics("Lyrics not available 😢");
+      console.error("Failed to fetch lyrics", err);
+    } finally {
+      setIsLoadingLyrics(false);
+    }
+  };
 
   return (
     <div className="page-container">
-      <h1>Liked Episodes</h1>
+      <h1>Liked Songs</h1>
 
       <div className="top-bar">
         <div className="search-container">
@@ -66,7 +85,7 @@ const LikedEpisodesPage = () => {
           </svg>
           <input
             type="text"
-            placeholder="Search episodes or shows"
+            placeholder="Search songs or artists"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -109,48 +128,56 @@ const LikedEpisodesPage = () => {
         </div>
       </div>
 
-      {!likedEpisodes ? (
-        <div>Loading liked episodes...</div>
+      {!likedSongs ? (
+        <div className="loading-message">Loading liked songs...</div>
       ) : (
         <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-          {filteredEpisodes.map((episode) => (
+          {filteredSongs.map(({ track }) => (
             <div
               className={viewMode === "grid" ? "song-card" : "song-row"}
-              key={episode.id}
-              onClick={() => setSelectedEpisode(episode)}
+              key={track.id}
+              onClick={() => {
+                setSelectedTrack(track);
+                fetchLyrics(track);
+              }}
             >
-              <img src={episode.images?.[0]?.url} alt={episode.name} className="album-cover" />
-              <div className="songs-info">
-                <div className="track-name">{episode.name}</div>
-                <div className="track-artists">{episode.show.name}</div>
+              <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
+              <div className="song-info">
+                <div className="track-name">{track.name}</div>
+                <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {selectedEpisode && (
+      {selectedTrack && (
         <div className="side-panel">
-          <button className="close-button" onClick={() => setSelectedEpisode(null)}>
+          <button
+            className="close-button"
+            onClick={() => {
+              setSelectedTrack(null);
+              setLyrics(null);
+            }}
+          >
             ×
           </button>
-          <img src={selectedEpisode.images?.[0]?.url} alt={selectedEpisode.name} className="details-cover" />
-          <h2>{selectedEpisode.name}</h2>
-          <h3>{selectedEpisode.show.name}</h3>
+          <img src={selectedTrack.album.images?.[0]?.url} alt={selectedTrack.name} className="details-cover" />
+          <h2>{selectedTrack.name}</h2>
+          <h3>{selectedTrack.artists.map((a) => a.name).join(", ")}</h3>
           <p>
-            <strong>Release date:</strong> {selectedEpisode.release_date}
+            <strong>Album:</strong> {selectedTrack.album.name}
+          </p>
+          <p>
+            <strong>Release date:</strong> {selectedTrack.album.release_date}
           </p>
           <p>
             <strong>Duration: </strong>
-            {Math.floor(selectedEpisode.duration_ms / 60000)}:
-            {String(Math.floor((selectedEpisode.duration_ms % 60000) / 1000)).padStart(2, "0")}
-          </p>
-          <p className="episode-description">
-            <strong>Description: </strong>
-            {selectedEpisode.description}
+            {Math.floor(selectedTrack.duration_ms / 60000)}:
+            {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
           </p>
           <a
-            href={selectedEpisode.external_urls.spotify}
+            href={selectedTrack.external_urls.spotify}
             target="_blank"
             rel="noopener noreferrer"
             className="spotify-button"
@@ -160,10 +187,25 @@ const LikedEpisodesPage = () => {
             </svg>
             Open in Spotify
           </a>
+          <div className="lyrics-section">
+            <h4>Lyrics</h4>
+            {isLoadingLyrics ? (
+              <div className="lyrics-text">🎵 Loading lyrics...</div>
+            ) : (
+              <pre className="lyrics-text">
+                {lyrics?.split("\n").map((line, index) => (
+                  <React.Fragment key={index}>
+                    {line}
+                    <br />
+                  </React.Fragment>
+                ))}
+              </pre>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default LikedEpisodesPage;
+export default LikedSongsPage;

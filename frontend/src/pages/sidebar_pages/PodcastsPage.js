@@ -1,113 +1,86 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import "./styles/LikedSongsPage.css";
 
-const ArtistsPage = () => {
-  const [artists, setArtists] = useState([]);
+const PodcastsPage = () => {
+  const [podcasts, setPodcasts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedArtist, setSelectedArtist] = useState(null);
-  const [artistTracks, setArtistTracks] = useState([]);
-  const [showArtists, setShowArtists] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [selectedPodcast, setSelectedPodcast] = useState(null);
+  const [episodes, setEpisodes] = useState([]);
+  const [showPodcasts, setShowPodcasts] = useState(false);
+  const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [artistDetails, setArtistDetails] = useState(null);
+  const [podcastDetails, setPodcastDetails] = useState(null);
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/artists", { withCredentials: true })
-      .then((res) => setArtists(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching artists"))
+      .get("http://127.0.0.1:8888/podcasts", { withCredentials: true })
+      .then((res) => setPodcasts(res.data.items || []))
+      .catch((err) => setError(err.response?.data || "Error fetching podcasts"))
       .finally(() => setIsLoading(false));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
       .then((res) => {
-        const savedMode = res.data.viewMode;
-        if (savedMode === "grid" || savedMode === "list") {
-          setViewMode(savedMode);
-        }
+        const mode = res.data.viewMode;
+        if (["grid", "list"].includes(mode)) setViewMode(mode);
       })
-      .catch((err) => console.warn("Failed to fetch profile viewMode:", err));
+      .catch(console.warn);
   }, []);
 
   const changeViewMode = (mode) => {
     setViewMode(mode);
-    axios
-      .post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true })
-      .catch((err) => console.warn("Could not save view mode", err));
+    axios.post("http://127.0.0.1:8888/viewmode", { viewMode: mode }, { withCredentials: true }).catch(console.warn);
   };
 
-  const fetchArtistTracks = (artist) => {
-    setShowArtists(true);
-    setSelectedArtist(artist);
+  const fetchPodcast = (podcast) => {
+    setShowPodcasts(true);
+    setSelectedPodcast(podcast);
     setSearchTerm("");
     axios
-      .get(`http://127.0.0.1:8888/artists/${artist.id}/top-tracks`, { withCredentials: true })
-      .then((res) => setArtistTracks(res.data.tracks))
-      .catch((err) => setError(err.response?.data || "Error fetching tracks"));
-
+      .get(`http://127.0.0.1:8888/podcasts/${podcast.id}/episodes`, { withCredentials: true })
+      .then((res) => setEpisodes(res.data.items))
+      .catch((err) => setError(err.response?.data || "Error fetching episodes"));
     axios
-      .get(`http://127.0.0.1:8888/artists/${artist.id}`, {
-        withCredentials: true,
-      })
-      .then((res) => setArtistDetails(res.data))
-      .catch((err) => console.warn("Error fetching artist details:", err));
+      .get(`http://127.0.0.1:8888/podcasts/${podcast.id}`, { withCredentials: true })
+      .then((res) => setPodcastDetails(res.data))
+      .catch(console.warn);
   };
 
-  const handleBackToArtists = () => {
-    setSelectedArtist(null);
-    setArtistTracks(null);
-    setShowArtists(false);
-    setSelectedTrack(null);
-    setArtistDetails(null);
+  const handleBack = () => {
+    setSelectedPodcast(null);
+    setEpisodes(null);
+    setShowPodcasts(false);
+    setSelectedEpisode(null);
+    setPodcastDetails(null);
     setSearchTerm("");
   };
-
-  function StarRating({ popularity }) {
-    const totalStars = 5;
-    const halfStarsCount = Math.round(popularity / 10);
-    const stars = [];
-
-    for (let i = 1; i <= totalStars; i++) {
-      const starHalfIndex = i * 2;
-
-      if (starHalfIndex <= halfStarsCount) {
-        stars.push(
-          <span key={i} className="star full">
-            ★
-          </span>
-        );
-      } else if (starHalfIndex - 1 === halfStarsCount) {
-        stars.push(
-          <span key={i} className="star half">
-            ★
-          </span>
-        );
-      } else {
-        stars.push(
-          <span key={i} className="star empty">
-            ★
-          </span>
-        );
-      }
-    }
-
-    return <div className="stars">{stars}</div>;
-  }
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredArtists = artists.filter((a) => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredTracks =
-    artistTracks?.filter((track) => track.name.toLowerCase().includes(searchTerm.toLowerCase())) || [];
+  const filteredPodcasts = podcasts.filter((p) => {
+    const name = p.name?.toLowerCase() || "";
+    const publisher = p.publisher?.toLowerCase() || "";
+    const term = searchTerm.toLowerCase();
+    return name.includes(term) || publisher.includes(term);
+  });
+
+  const filteredEpisodes =
+    episodes?.filter((ep) => {
+      const epName = ep.name?.toLowerCase() || "";
+      const showName = selectedPodcast.name.toLowerCase() || "";
+      const publisher = selectedPodcast.publisher.toLowerCase() || "";
+      const term = searchTerm.toLowerCase();
+      return epName.includes(term) || showName.includes(term) || publisher.includes(term);
+    }) || [];
 
   return (
     <div className="page-container">
-      {!showArtists ? (
+      {!showPodcasts ? (
         <>
-          <h1>Artists</h1>
+          <h1>Podcasts</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -126,13 +99,12 @@ const ArtistsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search artists..."
+                placeholder="Search podcasts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
             </div>
-
             <div className="view-toggle">
               <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
                 <svg
@@ -169,19 +141,23 @@ const ArtistsPage = () => {
             </div>
           </div>
           {isLoading ? (
-            <div>Loading artists...</div>
+            <div>Loading podcasts...</div>
           ) : (
             <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-              {filteredArtists.map((artist) => (
+              {filteredPodcasts.map((pod) => (
                 <div
-                  key={artist.id}
+                  key={pod.id}
                   className={viewMode === "grid" ? "song-card" : "song-row"}
-                  onClick={() => fetchArtistTracks(artist)}
+                  onClick={() => fetchPodcast(pod)}
                 >
-                  <img src={artist.images?.[0]?.url} alt={artist.name} className="album-cover artist-cover" />
+                  <img
+                    src={pod.images?.reduce((largest, img) => (img.width > (largest?.width ?? 0) ? img : largest))?.url}
+                    alt={pod.name}
+                    className="album-cover"
+                  />
                   <div className="track-info">
-                    <div className="track-name">{artist.name}</div>
-                    <div className="track-artists">Followers: {artist.followers?.total.toLocaleString()}</div>
+                    <div className="track-name">{pod.name}</div>
+                    <div className="track-artists">{pod.publisher}</div>
                   </div>
                 </div>
               ))}
@@ -191,43 +167,41 @@ const ArtistsPage = () => {
       ) : (
         <>
           <div className="playlist-overview">
-            <button className="back-button" onClick={handleBackToArtists}>
-              ⬅ Back to artists
+            <button className="back-button" onClick={handleBack}>
+              ⬅ Back to podcasts
             </button>
             <div className="playlist-header">
               <div className="playlist-left">
                 <img
-                  src={selectedArtist.images?.[0]?.url}
-                  alt={selectedArtist.name}
-                  className="album-cover artist-cover"
+                  src={
+                    selectedPodcast.images?.reduce((largest, img) =>
+                      img.width > (largest?.width ?? 0) ? img : largest
+                    )?.url
+                  }
+                  alt={selectedPodcast.name}
+                  className="album-cover"
                 />
-
-                {artistDetails && (
+                {podcastDetails && (
                   <div className="playlist-badges">
                     <div className="badge">
-                      <span className="badge-label">Genres</span>
-                      <p>{artistDetails.genres.join(", ") || "N/A"}</p>
+                      <span className="badge-label">Publisher</span>
+                      <p>{podcastDetails.publisher}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Popularity</span>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                        <StarRating popularity={artistDetails.popularity} />
-                        <span style={{ fontSize: "0.8rem", color: "#888", marginTop: "2px", paddingLeft: "10px" }}>
-                          {artistDetails.popularity}/100
-                        </span>
-                      </div>
+                      <span className="badge-label">Total episodes</span>
+                      <p>{podcastDetails.total_episodes}</p>
                     </div>
                   </div>
                 )}
               </div>
+
               <div className="playlist-right">
-                <h2 className="playlist-info-title">{artistDetails?.name}</h2>
-                <p className="playlist-analysis">Artist Analysis</p>
+                <h2 className="playlist-info-title">{podcastDetails?.name}</h2>
+                <p className="playlist-analysis">Podcast Analysis</p>
               </div>
             </div>
           </div>
 
-          <h1>Top tracks</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -246,13 +220,12 @@ const ArtistsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search tracks..."
+                placeholder="Search episodes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
             </div>
-
             <div className="view-toggle">
               <button onClick={() => changeViewMode("grid")} className={viewMode === "grid" ? "active" : ""}>
                 <svg
@@ -288,21 +261,22 @@ const ArtistsPage = () => {
               </button>
             </div>
           </div>
+
           <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredTracks.map((track, idx) => (
+            {filteredEpisodes.map((ep, idx) => (
               <div
-                key={`${track.id}-${idx}`}
+                key={`${ep.id}-${idx}`}
                 className={viewMode === "grid" ? "song-card" : "song-row"}
-                onClick={() => setSelectedTrack(track)}
+                onClick={() => setSelectedEpisode(ep)}
               >
                 <img
-                  src={track.album?.images?.[0]?.url || selectedArtist.images?.[0]?.url}
-                  alt={track.name}
+                  src={podcastDetails?.images?.[0]?.url || selectedPodcast.images?.[0]?.url}
+                  alt={ep.name}
                   className="album-cover"
                 />
                 <div className="track-info">
-                  <div className="track-name">{track.name}</div>
-                  <div className="track-artists">{track.album?.artists.map((a) => a.name).join(", ")}</div>
+                  <div className="track-name">{ep.name}</div>
+                  <div className="track-artists">{selectedPodcast.publisher}</div>
                 </div>
               </div>
             ))}
@@ -310,39 +284,41 @@ const ArtistsPage = () => {
         </>
       )}
 
-      {selectedTrack && (
+      {selectedEpisode && (
         <div className="side-panel">
-          <button className="close-button" onClick={() => setSelectedTrack(null)}>
+          <button className="close-button" onClick={() => setSelectedEpisode(null)}>
             ×
           </button>
-          <img src={selectedTrack.album.images?.[0]?.url} alt={selectedTrack.name} className="details-cover" />
-          <h2>{selectedTrack.name}</h2>
-          <h3>{selectedTrack.artists.map((a) => a.name).join(", ")}</h3>
-          <p>
-            <strong>Album:</strong> {selectedTrack.album.name}
-          </p>
-          <p>
-            <strong>Release date:</strong> {selectedTrack.album.release_date}
-          </p>
-          <p>
-            <strong>Duration: </strong>
-            {Math.floor(selectedTrack.duration_ms / 60000)}:
-            {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
-          </p>
-          <a
-            href={selectedTrack.external_urls.spotify}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="spotify-button"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 168 168" fill="white">
-              <path d="M84 0C37.7 0 0 37.7 0 84s37.7 84 84 84 84-37.7 84-84S130.3 0 84 0zm38.6 120.1c-1.3 2.1-4 2.8-6.1 1.5-16.8-10.2-38-12.5-63-6.8-2.4.5-4.8-1-5.3-3.4-.5-2.4 1-4.8 3.4-5.3 28-6.2 52.3-3.6 71.1 8 2 1.3 2.7 4 1.5 6zm8.7-20.6c-1.6 2.6-5.1 3.4-7.7 1.8-19.2-11.8-48.4-15.2-71.1-8.2-3 .9-6.2-.8-7.1-3.8-.9-3 .8-6.2 3.8-7.1 27.1-8 60.2-4.1 83 10.1 2.6 1.6 3.4 5.1 1.8 7.2zm.2-22.2c-23-13.7-61.2-15-83.5-8.1-3.5 1.1-7.2-.9-8.3-4.4-1.1-3.5.9-7.2 4.4-8.3 26.5-8 69.1-6.5 96.9 9.6 3.1 1.8 4.1 5.8 2.3 8.9-1.7 2.8-5.5 3.9-8.3 2.3z" />
-            </svg>
-            Open in Spotify
-          </a>
-          <div className="lyrics-section">
-            <h4>Lyrics (sample)</h4>
-            <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>
+          <img src={podcastDetails?.images?.[0]?.url} alt={selectedEpisode.name} className="details-cover" />
+          <div className="track-details">
+            <h2>{selectedEpisode.name}</h2>
+            <h3>{selectedPodcast.publisher}</h3>
+            <div className="track-meta">
+              <p>
+                <strong>Release date:</strong> {selectedEpisode.release_date}
+              </p>
+              <p>
+                <strong>Duration:</strong> {Math.floor(selectedEpisode.duration_ms / 60000)}:
+                {String(Math.floor((selectedEpisode.duration_ms % 60000) / 1000)).padStart(2, "0")}
+              </p>
+              <p className="episode-description">
+                <strong>Description: </strong>
+                {selectedEpisode.description}
+              </p>
+            </div>
+            {selectedEpisode.external_urls?.spotify && (
+              <a
+                href={selectedEpisode.external_urls.spotify}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="spotify-button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 168 168" fill="white">
+                  <path d="M84 0C37.7 0 0 37.7 0 84s37.7 84 84 84 84-37.7 84-84S130.3 0 84 0zm38.6 120.1c-1.3 2.1-4 2.8-6.1 1.5-16.8-10.2-38-12.5-63-6.8-2.4.5-4.8-1-5.3-3.4-.5-2.4 1-4.8 3.4-5.3 28-6.2 52.3-3.6 71.1 8 2 1.3 2.7 4 1.5 6zm8.7-20.6c-1.6 2.6-5.1 3.4-7.7 1.8-19.2-11.8-48.4-15.2-71.1-8.2-3 .9-6.2-.8-7.1-3.8-.9-3 .8-6.2 3.8-7.1 27.1-8 60.2-4.1 83 10.1 2.6 1.6 3.4 5.1 1.8 7.2zm.2-22.2c-23-13.7-61.2-15-83.5-8.1-3.5 1.1-7.2-.9-8.3-4.4-1.1-3.5.9-7.2 4.4-8.3 26.5-8 69.1-6.5 96.9 9.6 3.1 1.8 4.1 5.8 2.3 8.9-1.7 2.8-5.5 3.9-8.3 2.3z" />
+                </svg>
+                Open in Spotify
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -350,4 +326,4 @@ const ArtistsPage = () => {
   );
 };
 
-export default ArtistsPage;
+export default PodcastsPage;

@@ -153,6 +153,8 @@ h3 {
 }
 
 .lyrics-text {
+  max-height: 200px;
+  overflow-y: auto;
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
   border-radius: 8px;
@@ -160,6 +162,25 @@ h3 {
   font-family: monospace;
   font-size: 0.85rem;
   color: #ccc;
+}
+
+.lyrics-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lyrics-text::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.lyrics-text::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.lyrics-bracket {
+  color: #fff;
+  font-weight: bold;
 }
 
 /* Пошуковий інпут */

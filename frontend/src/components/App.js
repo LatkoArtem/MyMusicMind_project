@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./Header";
-import Home from "./header_pages/Home";
-import Page2 from "./header_pages/Page2";
-import Page3 from "./header_pages/Page3";
-import Page4 from "./header_pages/Page4";
-import Page5 from "./header_pages/Page5";
-import ProfilePage from "./header_pages/ProfilePage";
+import Home from "../pages/header_pages/Home";
+import Page2 from "../pages/header_pages/Page2";
+import Page3 from "../pages/header_pages/Page3";
+import Page4 from "../pages/header_pages/Page4";
+import Page5 from "../pages/header_pages/Page5";
+import ProfilePage from "../pages/header_pages/ProfilePage";
 
-import LikedSongsPage from "./sidebar_pages/LikedSongsPage";
-import LikedEpisodesPage from "./sidebar_pages/LikedEpisodesPage";
-import PlaylistsPage from "./sidebar_pages/PlaylistsPage";
-import AlbumsPage from "./sidebar_pages/AlbumsPage";
-import ArtistsPage from "./sidebar_pages/ArtistsPage";
-import PodcastsPage from "./sidebar_pages/PodcastsPage";
+import LikedSongsPage from "../pages/sidebar_pages/LikedSongsPage";
+import LikedEpisodesPage from "../pages/sidebar_pages/LikedEpisodesPage";
+import PlaylistsPage from "../pages/sidebar_pages/PlaylistsPage";
+import AlbumsPage from "../pages/sidebar_pages/AlbumsPage";
+import ArtistsPage from "../pages/sidebar_pages/ArtistsPage";
+import PodcastsPage from "../pages/sidebar_pages/PodcastsPage";
 
-import "./App.css";
-import Background from "../src/images/Background.png";
+import "./styles/App.css";
+import Background from "../images/Background.png";
 
 function App() {
   const [profile, setProfile] = useState(null);

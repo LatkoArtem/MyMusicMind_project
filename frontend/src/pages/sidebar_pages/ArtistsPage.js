@@ -1,26 +1,24 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import "./styles/LikedSongsPage.css";
 
-const PlaylistsPage = () => {
-  const [playlists, setPlaylists] = useState([]);
+const ArtistsPage = () => {
+  const [artists, setArtists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [playlistTracks, setPlaylistTracks] = useState([]);
-  const [showPlaylists, setShowPlaylists] = useState(false);
+  const [selectedArtist, setSelectedArtist] = useState(null);
+  const [artistTracks, setArtistTracks] = useState([]);
+  const [showArtists, setShowArtists] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [playlistDetails, setPlaylistDetails] = useState(null);
+  const [artistDetails, setArtistDetails] = useState(null);
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/playlists", { withCredentials: true })
-      .then((res) => {
-        setPlaylists(res.data.items || []);
-      })
-      .catch((err) => setError(err.response?.data || "Error fetching playlists"))
+      .get("http://127.0.0.1:8888/artists", { withCredentials: true })
+      .then((res) => setArtists(res.data.items || []))
+      .catch((err) => setError(err.response?.data || "Error fetching artists"))
       .finally(() => setIsLoading(false));
 
     axios
@@ -41,48 +39,75 @@ const PlaylistsPage = () => {
       .catch((err) => console.warn("Could not save view mode", err));
   };
 
-  const fetchPlaylistTracks = (playlist) => {
-    setShowPlaylists(true);
-    setSelectedPlaylist(playlist);
+  const fetchArtistTracks = (artist) => {
+    setShowArtists(true);
+    setSelectedArtist(artist);
     setSearchTerm("");
     axios
-      .get(`http://127.0.0.1:8888/playlists/${playlist.id}/tracks`, { withCredentials: true })
-      .then((res) => setPlaylistTracks(res.data.items))
-      .catch((err) => console.error(err));
+      .get(`http://127.0.0.1:8888/artists/${artist.id}/top-tracks`, { withCredentials: true })
+      .then((res) => setArtistTracks(res.data.tracks))
+      .catch((err) => setError(err.response?.data || "Error fetching tracks"));
 
     axios
-      .get(`http://127.0.0.1:8888/playlists/${playlist.id}`, { withCredentials: true })
-      .then((res) => setPlaylistDetails(res.data))
-      .catch((err) => console.warn("Error fetching playlist details:", err));
+      .get(`http://127.0.0.1:8888/artists/${artist.id}`, {
+        withCredentials: true,
+      })
+      .then((res) => setArtistDetails(res.data))
+      .catch((err) => console.warn("Error fetching artist details:", err));
   };
 
-  const handleBackToPlaylists = () => {
-    setSelectedPlaylist(null);
-    setPlaylistTracks(null);
-    setShowPlaylists(false);
+  const handleBackToArtists = () => {
+    setSelectedArtist(null);
+    setArtistTracks(null);
+    setShowArtists(false);
     setSelectedTrack(null);
-    setPlaylistDetails(null);
+    setArtistDetails(null);
     setSearchTerm("");
   };
+
+  function StarRating({ popularity }) {
+    const totalStars = 5;
+    const halfStarsCount = Math.round(popularity / 10);
+    const stars = [];
+
+    for (let i = 1; i <= totalStars; i++) {
+      const starHalfIndex = i * 2;
+
+      if (starHalfIndex <= halfStarsCount) {
+        stars.push(
+          <span key={i} className="star full">
+            ★
+          </span>
+        );
+      } else if (starHalfIndex - 1 === halfStarsCount) {
+        stars.push(
+          <span key={i} className="star half">
+            ★
+          </span>
+        );
+      } else {
+        stars.push(
+          <span key={i} className="star empty">
+            ★
+          </span>
+        );
+      }
+    }
+
+    return <div className="stars">{stars}</div>;
+  }
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredPlaylists = playlists.filter((playlist) =>
-    playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  const filteredArtists = artists.filter((a) => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredTracks =
-    playlistTracks?.filter(
-      ({ track }) =>
-        track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    ) || [];
+    artistTracks?.filter((track) => track.name.toLowerCase().includes(searchTerm.toLowerCase())) || [];
 
   return (
     <div className="page-container">
-      {!showPlaylists ? (
+      {!showArtists ? (
         <>
-          <h1>Playlists</h1>
+          <h1>Artists</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -101,7 +126,7 @@ const PlaylistsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search artists..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -144,19 +169,19 @@ const PlaylistsPage = () => {
             </div>
           </div>
           {isLoading ? (
-            <div>Loading playlists...</div>
+            <div>Loading artists...</div>
           ) : (
             <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-              {filteredPlaylists.map((playlist) => (
+              {filteredArtists.map((artist) => (
                 <div
-                  key={playlist.id}
+                  key={artist.id}
                   className={viewMode === "grid" ? "song-card" : "song-row"}
-                  onClick={() => fetchPlaylistTracks(playlist)}
+                  onClick={() => fetchArtistTracks(artist)}
                 >
-                  <img src={playlist.images?.[0]?.url} alt={playlist.name} className="album-cover" />
+                  <img src={artist.images?.[0]?.url} alt={artist.name} className="album-cover artist-cover" />
                   <div className="track-info">
-                    <div className="track-name">{playlist.name}</div>
-                    <div className="track-artists">{playlist.tracks.total} tracks</div>
+                    <div className="track-name">{artist.name}</div>
+                    <div className="track-artists">Followers: {artist.followers?.total.toLocaleString()}</div>
                   </div>
                 </div>
               ))}
@@ -166,41 +191,43 @@ const PlaylistsPage = () => {
       ) : (
         <>
           <div className="playlist-overview">
-            <button className="back-button" onClick={handleBackToPlaylists}>
-              ⬅ Back to playlists
+            <button className="back-button" onClick={handleBackToArtists}>
+              ⬅ Back to artists
             </button>
             <div className="playlist-header">
               <div className="playlist-left">
-                <img src={selectedPlaylist.images?.[0]?.url} alt={selectedPlaylist.name} className="album-cover" />
+                <img
+                  src={selectedArtist.images?.[0]?.url}
+                  alt={selectedArtist.name}
+                  className="album-cover artist-cover"
+                />
 
-                {playlistDetails && (
+                {artistDetails && (
                   <div className="playlist-badges">
                     <div className="badge">
-                      <span className="badge-label">Owner</span>
-                      <p>{playlistDetails.owner.display_name}</p>
+                      <span className="badge-label">Genres</span>
+                      <p>{artistDetails.genres.join(", ") || "N/A"}</p>
                     </div>
                     <div className="badge">
-                      <span className="badge-label">Public</span>
-                      <p>{playlistDetails.public ? "Yes" : "No"}</p>
-                    </div>
-                    <div className="badge">
-                      <span className="badge-label">Collaborative</span>
-                      <p>{playlistDetails.collaborative ? "Yes" : "No"}</p>
-                    </div>
-                    <div className="badge">
-                      <span className="badge-label">Tracks</span>
-                      <p>{playlistDetails.tracks.total}</p>
+                      <span className="badge-label">Popularity</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                        <StarRating popularity={artistDetails.popularity} />
+                        <span style={{ fontSize: "0.8rem", color: "#888", marginTop: "2px", paddingLeft: "10px" }}>
+                          {artistDetails.popularity}/100
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-
               <div className="playlist-right">
-                <h2 className="playlist-info-title">{selectedPlaylist.name}</h2>
-                <p className="playlist-analysis">Playlist Analysis</p>
+                <h2 className="playlist-info-title">{artistDetails?.name}</h2>
+                <p className="playlist-analysis">Artist Analysis</p>
               </div>
             </div>
           </div>
+
+          <h1>Top tracks</h1>
           <div className="top-bar">
             <div className="search-container">
               <svg
@@ -219,7 +246,7 @@ const PlaylistsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search tracks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -262,16 +289,20 @@ const PlaylistsPage = () => {
             </div>
           </div>
           <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-            {filteredTracks.map(({ track }, index) => (
+            {filteredTracks.map((track, idx) => (
               <div
-                key={`${track.id}-${index}`}
+                key={`${track.id}-${idx}`}
                 className={viewMode === "grid" ? "song-card" : "song-row"}
                 onClick={() => setSelectedTrack(track)}
               >
-                <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
+                <img
+                  src={track.album?.images?.[0]?.url || selectedArtist.images?.[0]?.url}
+                  alt={track.name}
+                  className="album-cover"
+                />
                 <div className="track-info">
                   <div className="track-name">{track.name}</div>
-                  <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
+                  <div className="track-artists">{track.album?.artists.map((a) => a.name).join(", ")}</div>
                 </div>
               </div>
             ))}
@@ -319,4 +350,4 @@ const PlaylistsPage = () => {
   );
 };
 
-export default PlaylistsPage;
+export default ArtistsPage;

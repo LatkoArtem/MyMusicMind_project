@@ -1,19 +1,19 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import "./LikedSongsPage.css";
+import "./styles/LikedSongsPage.css";
 
-const LikedSongsPage = () => {
-  const [likedSongs, setLikedSongs] = useState(null);
-  const [selectedTrack, setSelectedTrack] = useState(null);
+const LikedEpisodesPage = () => {
+  const [likedEpisodes, setLikedEpisodes] = useState(null);
+  const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/liked-songs", { withCredentials: true })
-      .then((res) => setLikedSongs(res.data))
-      .catch((err) => setError(err.response?.data || "Error fetching liked songs"));
+      .get("http://127.0.0.1:8888/my-episodes", { withCredentials: true })
+      .then((res) => setLikedEpisodes(res.data))
+      .catch((err) => setError(err.response?.data || "Error fetching liked episodes"));
 
     axios
       .get("http://127.0.0.1:8888/profile", { withCredentials: true })
@@ -35,16 +35,18 @@ const LikedSongsPage = () => {
 
   if (error) return <div>Error: {JSON.stringify(error)}</div>;
 
-  const filteredSongs =
-    likedSongs?.items.filter(
-      ({ track }) =>
-        track.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        track.artists.some((artist) => artist.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    ) || [];
+  const filteredEpisodes =
+    likedEpisodes?.items
+      ?.filter((episode) => episode && episode.name && episode.show && episode.images?.length > 0)
+      .filter((episode) => {
+        const episodeName = episode.name.toLowerCase();
+        const showName = episode.show.name.toLowerCase();
+        return episodeName.includes(searchTerm.toLowerCase()) || showName.includes(searchTerm.toLowerCase());
+      }) || [];
 
   return (
     <div className="page-container">
-      <h1>Liked Songs</h1>
+      <h1>Liked Episodes</h1>
 
       <div className="top-bar">
         <div className="search-container">
@@ -64,7 +66,7 @@ const LikedSongsPage = () => {
           </svg>
           <input
             type="text"
-            placeholder="Search songs or artists"
+            placeholder="Search episodes or shows"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -107,47 +109,48 @@ const LikedSongsPage = () => {
         </div>
       </div>
 
-      {!likedSongs ? (
-        <div className="loading-message">Loading liked songs...</div>
+      {!likedEpisodes ? (
+        <div>Loading liked episodes...</div>
       ) : (
         <div className={viewMode === "grid" ? "songs-grid" : "songs-list"}>
-          {filteredSongs.map(({ track }) => (
+          {filteredEpisodes.map((episode) => (
             <div
               className={viewMode === "grid" ? "song-card" : "song-row"}
-              key={track.id}
-              onClick={() => setSelectedTrack(track)}
+              key={episode.id}
+              onClick={() => setSelectedEpisode(episode)}
             >
-              <img src={track.album.images?.[0]?.url} alt={track.name} className="album-cover" />
-              <div className="song-info">
-                <div className="track-name">{track.name}</div>
-                <div className="track-artists">{track.artists.map((a) => a.name).join(", ")}</div>
+              <img src={episode.images?.[0]?.url} alt={episode.name} className="album-cover" />
+              <div className="songs-info">
+                <div className="track-name">{episode.name}</div>
+                <div className="track-artists">{episode.show.name}</div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {selectedTrack && (
+      {selectedEpisode && (
         <div className="side-panel">
-          <button className="close-button" onClick={() => setSelectedTrack(null)}>
+          <button className="close-button" onClick={() => setSelectedEpisode(null)}>
             ×
           </button>
-          <img src={selectedTrack.album.images?.[0]?.url} alt={selectedTrack.name} className="details-cover" />
-          <h2>{selectedTrack.name}</h2>
-          <h3>{selectedTrack.artists.map((a) => a.name).join(", ")}</h3>
+          <img src={selectedEpisode.images?.[0]?.url} alt={selectedEpisode.name} className="details-cover" />
+          <h2>{selectedEpisode.name}</h2>
+          <h3>{selectedEpisode.show.name}</h3>
           <p>
-            <strong>Album:</strong> {selectedTrack.album.name}
-          </p>
-          <p>
-            <strong>Release date:</strong> {selectedTrack.album.release_date}
+            <strong>Release date:</strong> {selectedEpisode.release_date}
           </p>
           <p>
             <strong>Duration: </strong>
-            {Math.floor(selectedTrack.duration_ms / 60000)}:
-            {String(Math.floor((selectedTrack.duration_ms % 60000) / 1000)).padStart(2, "0")}
+            {Math.floor(selectedEpisode.duration_ms / 60000)}:
+            {String(Math.floor((selectedEpisode.duration_ms % 60000) / 1000)).padStart(2, "0")}
+          </p>
+          <p className="episode-description">
+            <strong>Description: </strong>
+            {selectedEpisode.description}
           </p>
           <a
-            href={selectedTrack.external_urls.spotify}
+            href={selectedEpisode.external_urls.spotify}
             target="_blank"
             rel="noopener noreferrer"
             className="spotify-button"
@@ -157,14 +160,10 @@ const LikedSongsPage = () => {
             </svg>
             Open in Spotify
           </a>
-          <div className="lyrics-section">
-            <h4>Lyrics (sample)</h4>
-            <pre className="lyrics-text">We don't have the lyrics API yet, but you can imagine them here 🎵</pre>
-          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default LikedSongsPage;
+export default LikedEpisodesPage;
