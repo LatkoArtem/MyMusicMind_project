@@ -190,7 +190,10 @@ def playlists():
             return jsonify({"error": "Failed to fetch playlists"}), response.status_code
 
         data = response.json()
-        all_playlists["items"].extend(data.get("items", []))
+
+        playlists_only = data.get("items", [])
+
+        all_playlists["items"].extend(playlists_only)
         all_playlists["total"] = data.get("total", 0)
 
         url = data.get("next")
@@ -488,6 +491,7 @@ def search_genius(song_title, artist_name):
             return hit["result"]["url"]
     return None
 
+# Scrape lyrics
 def scrape_lyrics_from_url(url):
     page = requests.get(url)
     if page.status_code != 200:

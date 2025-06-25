@@ -14,6 +14,7 @@ import PlaylistsPage from "../pages/sidebar_pages/PlaylistsPage";
 import AlbumsPage from "../pages/sidebar_pages/AlbumsPage";
 import ArtistsPage from "../pages/sidebar_pages/ArtistsPage";
 import PodcastsPage from "../pages/sidebar_pages/PodcastsPage";
+import DetailPage from "../pages/sidebar_pages/DetailPage";
 
 import "./styles/App.css";
 import Background from "../images/Background.png";
@@ -93,6 +94,9 @@ function App() {
             <Route path="/AlbumsPage" element={<AlbumsPage />} />
             <Route path="/ArtistsPage" element={<ArtistsPage />} />
             <Route path="/PodcastsPage" element={<PodcastsPage />} />
+
+            {/* Detail page for (Playlists, Albums, Artists, Podcasts) pages*/}
+            <Route path="/:type/:id" element={<DetailPage />} />
           </Routes>
         </main>
       </div>
