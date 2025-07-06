@@ -2,11 +2,17 @@ import os
 import re
 import requests
 import json
+from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
 from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
+from routes.groq_client import get_song_themes_from_groq
+from models import db, User, UserLyricsTopic
+from utils import hash_lyrics, is_request_allowed
+from cache_lyrics import get_cached_lyrics, set_cached_lyrics, get_cached_lyrics_by_track_id, set_cached_lyrics_by_track_id
+
 
 PROFILE_PATH = "./flask_session_files/profile_data.json"
 
@@ -16,8 +22,18 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
+DB_HOST=os.getenv("DB_HOST")
+DB_NAME=os.getenv("DB_NAME")
+DB_USER=os.getenv("DB_USER")
+DB_PASS=os.getenv("DB_PASS")
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
 
 # Session config
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -62,7 +78,6 @@ def callback():
 
     error = request.args.get("error")
     if error:
-        # The user clicked "Cancel" or another error occurred
         return redirect("http://127.0.0.1:3000?error=access_denied")
 
     code = request.args.get("code")
@@ -87,6 +102,25 @@ def callback():
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
     print("✅ Token:", tokens["access_token"])
+
+    # отримання email та збереження user_id у сесію
+    profile_response = requests.get(
+        SPOTIFY_API_URL,
+        headers={"Authorization": f"Bearer {tokens['access_token']}"}
+    )
+
+    if profile_response.status_code == 200:
+        profile_data = profile_response.json()
+        email = profile_data.get("email")
+
+        if email:
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(email=email)
+                db.session.add(user)
+                db.session.commit()
+            session["user_id"] = user.id
+
     return redirect("http://127.0.0.1:3000")
 
 @app.route("/profile")
@@ -533,9 +567,26 @@ def scrape_lyrics_from_url(url):
 def get_lyrics():
     song = request.args.get("song")
     artist = request.args.get("artist")
+    track_id = request.args.get("track_id")
 
     if not song or not artist:
         return jsonify({"error": "Missing song or artist"}), 400
+
+    search_string = f"{song} {artist}"
+    lyrics_hash = hash_lyrics(search_string)
+
+    # Спроба взяти lyrics з кешу
+    cached = get_cached_lyrics(lyrics_hash)
+    if cached:
+        # Зберігаємо до track_id-кешу, якщо track_id є
+        if track_id:
+            set_cached_lyrics_by_track_id(track_id, cached)
+        return jsonify({
+            "song": song,
+            "artist": artist,
+            "lyrics": cached,
+            "source": "cache"
+        })
 
     genius_url = search_genius(song, artist)
     if not genius_url:
@@ -545,6 +596,11 @@ def get_lyrics():
     if not lyrics:
         return jsonify({"error": "Lyrics not found or could not be parsed"}), 500
 
+    # Зберігаємо в кеш
+    set_cached_lyrics(lyrics_hash, lyrics)
+    if track_id:
+        set_cached_lyrics_by_track_id(track_id, lyrics)
+
     return jsonify({
         "song": song,
         "artist": artist,
@@ -553,5 +609,112 @@ def get_lyrics():
     })
 ############## GENIUS LYRICS PARSING END ##############
 
+############## Analyze lyrics #########################
+@app.route("/get_lyrics_quota")
+def get_lyrics_quota():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    now = datetime.now(timezone.utc)
+    yesterday = now - timedelta(days=1)
+
+    count = UserLyricsTopic.query.filter(
+        UserLyricsTopic.user_id == user_id,
+        UserLyricsTopic.created_at >= yesterday
+    ).count()
+
+    daily_limit = 10
+    requests_left = max(0, daily_limit - count)
+
+    first_request = UserLyricsTopic.query.filter(
+        UserLyricsTopic.user_id == user_id,
+        UserLyricsTopic.created_at >= yesterday
+    ).order_by(UserLyricsTopic.created_at.asc()).first()
+
+    if requests_left > 0 or not first_request:
+        reset_seconds = 0
+    else:
+        reset_seconds = int((first_request.created_at + timedelta(days=1) - now).total_seconds())
+
+    return jsonify({
+        "requests_left": requests_left,
+        "reset_seconds": reset_seconds
+    })
+
+@app.route("/analyze_lyrics", methods=["POST"])
+def analyze_lyrics():
+    data = request.get_json()
+    lyrics = data.get("lyrics")
+    user_id = session.get("user_id")
+
+    if not user_id or not lyrics:
+        return jsonify({"error": "Missing user ID or lyrics"}), 400
+
+    lyrics_hash = hash_lyrics(lyrics)
+
+    existing = UserLyricsTopic.query.filter_by(user_id=user_id, lyrics_hash=lyrics_hash).first()
+    if existing:
+        return jsonify({
+            "topics": [existing.topic1, existing.topic2, existing.topic3],
+            "cached": True
+        })
+
+    if not is_request_allowed(user_id):
+        return jsonify({"error": "Daily limit exceeded"}), 429
+
+    # Спроба взяти текст з кешу
+    cached_lyrics = get_cached_lyrics(lyrics_hash)
+    if not cached_lyrics:
+        set_cached_lyrics(lyrics_hash, lyrics)
+
+    # Виклик LLM
+    theme_str = get_song_themes_from_groq(lyrics)
+    topics = [x.strip() for x in theme_str.split(",")][:3]
+
+    # Зберігаємо тільки хеш і топіки
+    new_record = UserLyricsTopic(
+        user_id=user_id,
+        lyrics_hash=lyrics_hash,
+        topic1=topics[0] if len(topics) > 0 else "",
+        topic2=topics[1] if len(topics) > 1 else "",
+        topic3=topics[2] if len(topics) > 2 else ""
+    )
+    db.session.add(new_record)
+    db.session.commit()
+
+    return jsonify({
+        "topics": topics,
+        "cached": False
+    })
+
+@app.route("/lyrics_topics/<track_id>")
+def get_lyrics_topics_by_track_id(track_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    lyrics = get_cached_lyrics_by_track_id(track_id)
+    if not lyrics:
+        return jsonify({"error": "Lyrics not found in cache"}), 404
+
+    lyrics_hash = hash_lyrics(lyrics)
+
+    existing = UserLyricsTopic.query.filter_by(user_id=user_id, lyrics_hash=lyrics_hash).first()
+
+    if existing:
+        return jsonify({
+            "topics": [existing.topic1, existing.topic2, existing.topic3],
+            "cached": True
+        })
+    else:
+        return jsonify({
+            "topics": [],
+            "cached": False
+        })
+############## Analyze lyrics END #####################
+
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()  # Create Tables if not already present
     app.run(port=8888, debug=True)

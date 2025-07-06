@@ -8,12 +8,19 @@ export const fetchLyrics = async (track, setLyrics, setIsLoadingLyrics) => {
       params: {
         song: track.name,
         artist: track.artists[0].name,
+        track_id: track.id,
       },
     });
-    setLyrics(response.data.lyrics);
+
+    const lyrics = response.data.lyrics;
+    if (!lyrics || lyrics.trim() === "") {
+      setLyrics(null);
+    } else {
+      setLyrics(lyrics);
+    }
   } catch (err) {
-    setLyrics("Lyrics not available 😢");
     console.error("Failed to fetch lyrics", err);
+    setLyrics(null);
   } finally {
     setIsLoadingLyrics(false);
   }

@@ -6,3 +6,6 @@
 /flask_session_files/
 /flask_session/
 how_to_start.txt
+
+__pycache__/
+*.pyc
