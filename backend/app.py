@@ -635,8 +635,8 @@ def get_lyrics_quota():
     if requests_left > 0 or not first_request:
         reset_seconds = 0
     else:
-        created_at_aware = first_request.created_at.replace(tzinfo=timezone.utc)
-        reset_seconds = int((created_at_aware + timedelta(days=1) - now).total_seconds())
+        created_at_utc = first_request.created_at.astimezone(timezone.utc)
+        reset_seconds = int((created_at_utc + timedelta(days=1) - now).total_seconds())
 
     return jsonify({
         "requests_left": requests_left,

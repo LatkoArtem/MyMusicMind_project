@@ -103,8 +103,6 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   };
 
   useEffect(() => {
-    let interval = null;
-
     const shouldFetchTopics = trackId && isTrack && topicsById[trackId] === undefined;
 
     const run = async () => {
@@ -121,17 +119,27 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
     };
 
     run();
-
-    if (resetInSec !== null && resetInSec > 0) {
-      interval = setInterval(() => {
-        setResetInSec((prev) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [trackId, isTrack, fetchExistingTopics, fetchQuota, topicsById]);
+
+  useEffect(() => {
+    fetchQuota();
+
+    const interval = setInterval(() => {
+      fetchQuota();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchQuota]);
+
+  useEffect(() => {
+    if (resetInSec === null || resetInSec <= 0) return;
+
+    const timer = setInterval(() => {
+      setResetInSec((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resetInSec]);
 
   const showAnalyzeButton =
     isTrack &&
