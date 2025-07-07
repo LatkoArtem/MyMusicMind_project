@@ -24,10 +24,15 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
     : "Unknown";
 
   const formatResetTime = (seconds) => {
-    if (!seconds) return "";
-    const mins = Math.floor(seconds / 60);
+    if (!seconds || seconds <= 0) return "00:00:00";
+
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
+
+    const pad = (num) => String(num).padStart(2, "0");
+
+    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
   };
 
   const fetchQuota = useCallback(async () => {
@@ -43,13 +48,22 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   }, []);
 
   const fetchExistingTopics = useCallback(async () => {
+    setLoadingTopics(true);
     try {
-      const res = await axios.get(`http://127.0.0.1:8888/lyrics_topics/${trackId}`, { withCredentials: true });
+      const res = await axios.get(`http://127.0.0.1:8888/lyrics_topics/${trackId}`, {
+        withCredentials: true,
+      });
+
       if (res.data?.topics?.length > 0) {
         setTopicsById((prev) => ({ ...prev, [trackId]: res.data.topics }));
+      } else {
+        setTopicsById((prev) => ({ ...prev, [trackId]: null }));
       }
     } catch (e) {
       console.error("Failed to fetch existing topics", e);
+      setTopicsById((prev) => ({ ...prev, [trackId]: null }));
+    } finally {
+      setLoadingTopics(false);
     }
   }, [trackId]);
 
@@ -89,19 +103,44 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   };
 
   useEffect(() => {
-    setErrorTopics(null);
-    setInfoTopics(null);
-    setLoadingTopics(false);
+    let interval = null;
 
-    if (trackId && isTrack) {
-      if (!topicsById[trackId]) {
-        fetchExistingTopics();
+    const shouldFetchTopics = trackId && isTrack && topicsById[trackId] === undefined;
+
+    const run = async () => {
+      setErrorTopics(null);
+      setInfoTopics(null);
+
+      if (shouldFetchTopics) {
+        await fetchExistingTopics();
       }
-      fetchQuota();
-    }
-  }, [trackId, lyrics, isTrack, topicsById, fetchExistingTopics, fetchQuota]);
 
-  const showAnalyzeButton = isTrack && lyrics && lyrics.trim() !== "" && !loadingTopics && !topicsById[trackId];
+      if (trackId && isTrack) {
+        await fetchQuota();
+      }
+    };
+
+    run();
+
+    if (resetInSec !== null && resetInSec > 0) {
+      interval = setInterval(() => {
+        setResetInSec((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [trackId, isTrack, fetchExistingTopics, fetchQuota, topicsById]);
+
+  const showAnalyzeButton =
+    isTrack &&
+    lyrics &&
+    lyrics.trim() !== "" &&
+    !loadingTopics &&
+    topicsById[trackId] === null &&
+    requestsLeft !== null &&
+    requestsLeft > 0;
 
   return (
     <div className="side-panel">
@@ -170,24 +209,29 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
               )}
             </div>
 
-            {showAnalyzeButton && (
-              <div style={{ marginTop: "1rem" }}>
-                <button
-                  onClick={handleAnalyzeClick}
-                  disabled={loadingTopics || (requestsLeft !== null && requestsLeft <= 0)}
-                  className="analyze-button"
-                >
+            {showAnalyzeButton ? (
+              <>
+                <button onClick={handleAnalyzeClick} disabled={loadingTopics} className="analyze-button">
                   {loadingTopics ? "Analyzing..." : "Show Thematic Words"}
                 </button>
-                {requestsLeft !== null && (
-                  <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: requestsLeft > 0 ? "green" : "red" }}>
-                    {requestsLeft > 0
-                      ? `Requests left today: ${requestsLeft}`
-                      : `Daily limit reached. Next requests available in ${formatResetTime(resetInSec)}`}
-                  </div>
-                )}
-              </div>
-            )}
+                <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "green" }}>
+                  Requests left today: {requestsLeft}
+                </div>
+              </>
+            ) : null}
+
+            {isTrack &&
+              lyrics &&
+              lyrics.trim() !== "" &&
+              requestsLeft !== null &&
+              requestsLeft <= 0 &&
+              !loadingTopics &&
+              !isLoadingLyrics &&
+              (!topicsById[trackId] || topicsById[trackId].length === 0) && (
+                <div style={{ marginTop: "1rem", fontSize: "0.9rem", color: "red" }}>
+                  Daily limit exceeded. Next requests available in {formatResetTime(resetInSec)}
+                </div>
+              )}
 
             <div className="lyrics-topics">
               {(loadingTopics || isLoadingLyrics) && null}
