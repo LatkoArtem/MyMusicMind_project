@@ -8,4 +8,9 @@
 how_to_start.txt
 
 __pycache__/
+/audio_temp/
+/ffmpeg/
 *.pyc
+
+/data/
+youtube_cookies.txt

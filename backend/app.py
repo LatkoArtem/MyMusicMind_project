@@ -2,6 +2,8 @@ import os
 import re
 import requests
 import json
+import time
+import numpy as np
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
@@ -9,10 +11,13 @@ from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
-from models import db, User, UserLyricsTopic
+from models import db, User, UserLyricsTopic, AnalyzedAlbum, AnalyzedPlaylist, AlbumTrackFeature
 from utils import hash_lyrics, is_request_allowed
 from cache_lyrics import get_cached_lyrics, set_cached_lyrics, get_cached_lyrics_by_track_id, set_cached_lyrics_by_track_id
-
+from yt_download_audio import download_audio
+from sqlalchemy.exc import IntegrityError
+from features_extractor import extract_features_from_full_track
+from calculate_consistency_score import calculate_mean_feature_vector, calculate_consistency_score
 
 PROFILE_PATH = "./flask_session_files/profile_data.json"
 
@@ -714,6 +719,167 @@ def get_lyrics_topics_by_track_id(track_id):
             "cached": False
         })
 ############## Analyze lyrics END #####################
+
+############## Album Analyze ##########################
+@app.route("/analyze_album/<album_id>")
+def analyze_album(album_id):
+    access_token = session.get("access_token")
+    if not access_token:
+        print(f"⚠️ [WARN] Unauthorized access attempt for album {album_id}")
+        return jsonify({"error": "Unauthorized"}), 401
+
+    cached = AnalyzedAlbum.query.filter_by(album_id=album_id).first()
+    if cached:
+        print(f"🗂️ [INFO] Returning cached analysis for album {album_id}")
+
+        track_features = AlbumTrackFeature.query.filter_by(album_id=album_id).all()
+        print(f"🗂️ [INFO] Found {len(track_features)} cached track features")
+
+        track_names = [tf.track_name for tf in track_features]
+
+        features_all = []
+        for tf in track_features:
+            try:
+                features_json = json.loads(tf.features)
+            except Exception as e:
+                print(f"❌ [ERROR] Failed to load features JSON for track {tf.track_id}: {e}")
+                features_json = None
+
+            features_all.append({
+                "track_id": tf.track_id,
+                "track_name": tf.track_name,
+                "features": features_json,
+            })
+
+        print(f"🗂️ [INFO] Returning {len(features_all)} tracks with features")
+
+        return jsonify({
+            "album_id": album_id,
+            "track_features": features_all,
+            "track_names": track_names,
+            "feature_vector": json.loads(cached.features),
+            "consistency_score": cached.consistency_score,
+            "cached": True
+        })
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
+    tracks = []
+
+    print(f"🎵 [INFO] Fetching tracks for album {album_id} from Spotify API")
+    while url:
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            print(f"❌ [ERROR] Failed to get album tracks for {album_id}, status: {res.status_code}")
+            return jsonify({"error": "Failed to get album tracks"}), 400
+        data = res.json()
+        tracks += data["items"]
+        url = data.get("next")
+
+    print(f"📦 [INFO] Fetched {len(tracks)} raw tracks for album {album_id}")
+
+    unique_tracks = {}
+    for track in tracks:
+        track_id = track.get("id")
+        artists = track.get("artists")
+        if not track_id or not artists:
+            print(f"⚠️ [WARN] Skipping track with missing ID or artists")
+            continue
+        if track_id not in unique_tracks:
+            unique_tracks[track_id] = track
+    tracks = list(unique_tracks.values())
+    print(f"✅ [INFO] Unique tracks count after deduplication: {len(tracks)}")
+
+    os.makedirs("audio_temp", exist_ok=True)
+    features_all = []
+    track_names = []
+
+    for idx, track in enumerate(tracks[:]):
+        name = track["name"]
+        artist = track["artists"][0]["name"]
+        print(f"🎧 [INFO] Processing track {idx + 1}: '{name}' by {artist}")
+
+        path = download_audio(name, artist)
+        if not path:
+            print(f"⚠️ [WARN] Failed to download audio for track '{name}'")
+            continue
+
+        print(f"🔍 [DEBUG] Extracting features for '{name}' from {path}")
+        feats = extract_features_from_full_track(path)
+
+        if feats is not None:
+            features_all.append(feats.tolist())
+            track_names.append(name)
+            print(f"🎯 [INFO] Extracted features for track '{name}'")
+
+            # Збереження у БД
+            try:
+                analyzed_track = AlbumTrackFeature(
+                    album_id=album_id,
+                    track_id=track["id"],
+                    track_name=track["name"],
+                    features=json.dumps(feats.tolist())
+                )
+                db.session.merge(analyzed_track)
+                db.session.commit()
+                print(f"💾 [INFO] Saved features for track '{name}'")
+            except IntegrityError:
+                db.session.rollback()
+                print(f"⚠️ [WARN] Track '{track['id']}' already saved, skipping")
+        else:
+            print(f"⚠️ [WARN] Skipping track '{name}' due to failed extraction")
+
+        try:
+            os.remove(path)
+            print(f"🗑️ [INFO] Deleted temporary audio file for track '{name}'")
+        except Exception as e:
+            print(f"❌ [ERROR] Cannot remove {path}: {e}")
+
+        time.sleep(2.5)
+
+    if not features_all:
+        print(f"🚫 [ERROR] No audio features extracted for album {album_id}")
+        return jsonify({"error": "No audio features extracted"}), 400
+
+    print(f"📊 [INFO] Feature vectors for each track in album {album_id}:")
+    for i, vec in enumerate(features_all, start=1):
+        print(f"Track {i} features: {vec}")
+
+    mean_features = calculate_mean_feature_vector(features_all)
+    consistency_score = calculate_consistency_score(features_all)
+
+    print(f"📈 [INFO] Calculated mean_features (centroid) for album {album_id}: {mean_features}")
+    print(f"📈 [INFO] Calculated consistency_score for album {album_id}: {consistency_score}")
+
+    try:
+        new_entry = AnalyzedAlbum(
+            album_id=album_id,
+            features=json.dumps(mean_features),
+            consistency_score=consistency_score
+        )
+        db.session.merge(new_entry)
+        db.session.commit()
+        print(f"💾 [INFO] Saved album analysis to DB for album {album_id}")
+    except IntegrityError:
+        db.session.rollback()
+        print(f"⚠️ [WARN] Album {album_id} already saved in parallel operation")
+        cached = AnalyzedAlbum.query.filter_by(album_id=album_id).first()
+        return jsonify({
+            "album_id": album_id,
+            "feature_vector": json.loads(cached.features),
+            "consistency_score": cached.consistency_score,
+            "cached": True
+        })
+
+    return jsonify({
+        "album_id": album_id,
+        "track_features": features_all,
+        "feature_vector": mean_features,
+        "consistency_score": consistency_score,
+        "track_names": [track["name"] for track in tracks],
+        "cached": False
+    })
+############## Album Analyze END ######################
 
 if __name__ == "__main__":
     with app.app_context():

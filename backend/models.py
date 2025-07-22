@@ -15,3 +15,25 @@ class UserLyricsTopic(db.Model):
     topic2 = db.Column(db.String(64))
     topic3 = db.Column(db.String(64))
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+class AnalyzedAlbum(db.Model):
+    album_id = db.Column(db.String(128), primary_key=True)
+    features = db.Column(db.Text)  # збережені фічі про трек у вигляді JSON для альбомів
+    consistency_score = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+class AnalyzedPlaylist(db.Model):
+    playlist_id = db.Column(db.String(128), primary_key=True)
+    features = db.Column(db.Text)  # збережені фічі про трек у вигляді JSON для плейлистів
+    consistency_score = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+class AlbumTrackFeature(db.Model):
+    __table_args__ = (
+        db.PrimaryKeyConstraint('album_id', 'track_id'),
+    )
+    album_id = db.Column(db.String(128), nullable=False)
+    track_id = db.Column(db.String(128), nullable=False)
+    track_name = db.Column(db.String(256), nullable=True)
+    features = db.Column(db.Text)  # JSON у текстовому вигляді
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -7,7 +7,7 @@ import MediaList from "./components/MediaList";
 import MediaSidePanel from "./components/MediaSidePanel";
 import ItemOverview from "./components/ItemOverview";
 import { fetchLyrics } from "./utils/fetchLyrics";
-import StarRating from "./components/StarRaiting";
+import StarRating from "./components/StarRating";
 
 const DetailPage = () => {
   const { type, id } = useParams(); // "albums" | "artists" | "playlists" | "podcasts"
@@ -21,21 +21,36 @@ const DetailPage = () => {
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [lyrics, setLyrics] = useState(null);
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
+  const [meanFeatures, setMeanFeatures] = useState(null);
+  const [trackFeatures, setTrackFeatures] = useState([]);
+  const [trackNames, setTrackNames] = useState([]);
+  const [consistencyScore, setConsistencyScore] = useState(null);
   const { viewMode, changeViewMode } = useViewMode();
 
   useEffect(() => {
-    const fetchDetails = async () => {
+    const fetchAllData = async () => {
       try {
+        // Отримуємо основні деталі
         const detailsRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}`, { withCredentials: true });
         setDetails(detailsRes.data);
 
+        // Завантажуємо треки / епізоди залежно від типу
         let tracksRes;
         if (type === "albums") {
           tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, { withCredentials: true });
           setItems(tracksRes.data.items);
+
+          // Запускаємо аналіз альбому одразу тут
+          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_album/${id}`, { withCredentials: true });
+          setMeanFeatures(analysisRes.data.feature_vector);
+          setConsistencyScore(analysisRes.data.consistency_score);
+          setTrackFeatures(analysisRes.data.track_features || []);
+          setTrackNames(analysisRes.data.track_names || []);
         } else if (type === "artists") {
           tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/top-tracks`, { withCredentials: true });
           setItems(tracksRes.data.tracks);
+
+          // Якщо потрібно – тут можна додати інші запити
         } else if (type === "playlists") {
           tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, { withCredentials: true });
           setItems(tracksRes.data.items.map(({ track }) => track).filter((track) => track && track.name));
@@ -48,7 +63,7 @@ const DetailPage = () => {
       }
     };
 
-    fetchDetails();
+    fetchAllData();
   }, [type, id]);
 
   useEffect(() => {
@@ -129,14 +144,20 @@ const DetailPage = () => {
       <ItemOverview
         image={getImage()}
         title={details.name}
-        analysisLabel={`${type.slice(0, -1)} Analysis`}
+        analysisLabel={type}
         backLabel={type}
         onBack={() => navigate(`/${type.charAt(0).toUpperCase() + type.slice(1)}Page`)}
         badges={renderBadges()}
+        meanFeatures={meanFeatures}
+        consistencyScore={consistencyScore}
+        spotifyUrl={details.external_urls?.spotify}
+        trackFeatures={trackFeatures}
+        trackNames={trackNames}
         {...(type === "artists" && { imageClassName: "artist-cover" })}
       />
 
       {type === "artists" && <h1>Top tracks</h1>}
+
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}

@@ -281,6 +281,7 @@ h3 {
 
 /* Кнопка Spotify */
 .spotify-button {
+  width: 150px;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;

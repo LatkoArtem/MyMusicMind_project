@@ -1,0 +1,77 @@
+.album-analysis-container {
+  max-width: 600px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #ffffff;
+  font-size: 1.05rem;
+}
+
+.album-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  margin-top: 10px;
+  border-bottom: 4px solid rgba(16, 31, 57, 1);
+  padding-bottom: 6px;
+}
+
+.album-analysis-title {
+  color: #ffffff;
+  font-weight: 600;
+  margin: 0;
+}
+
+.album-analysis-toggle-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.album-analysis-button {
+  padding: 6px 12px;
+  cursor: pointer;
+  border: 1px solid #8c9eff;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  background-color: transparent;
+  font-weight: 400;
+}
+
+.album-analysis-button.active {
+  background-color: #8c9eff;
+  font-weight: 700;
+}
+
+.album-analysis-consistency {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 36px;
+  margin-bottom: 8px;
+  color: #c5cae9;
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.album-analysis-progress-container {
+  background-color: rgba(16, 31, 57, 0.9);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 28px;
+  width: 100%;
+}
+
+.album-analysis-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0d1a4b, #8c9eff);
+  transition: width 0.7s ease-in-out;
+}
+
+.album-analysis-label {
+  text-align: center;
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  user-select: none;
+  color: #ffffff;
+}

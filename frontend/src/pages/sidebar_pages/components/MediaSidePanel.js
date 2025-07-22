@@ -56,12 +56,11 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
 
       if (res.data?.topics?.length > 0) {
         setTopicsById((prev) => ({ ...prev, [trackId]: res.data.topics }));
-      } else {
-        setTopicsById((prev) => ({ ...prev, [trackId]: null }));
+      } else if (res.data?.cached === true) {
+        setTopicsById((prev) => ({ ...prev, [trackId]: [] }));
       }
     } catch (e) {
       console.error("Failed to fetch existing topics", e);
-      setTopicsById((prev) => ({ ...prev, [trackId]: null }));
     } finally {
       setLoadingTopics(false);
     }
@@ -103,25 +102,30 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   };
 
   useEffect(() => {
-    const shouldFetchTopics = trackId && isTrack && topicsById[trackId] === undefined;
+    const hasTopics = topicsById[trackId]?.length > 0;
+    const topicsNotLoaded = topicsById[trackId] === undefined || topicsById[trackId] === null;
 
     const run = async () => {
       setErrorTopics(null);
       setInfoTopics(null);
 
-      if (shouldFetchTopics) {
+      if (trackId && isTrack && topicsNotLoaded && lyrics?.trim()) {
         await fetchExistingTopics();
-      }
 
-      if (trackId && isTrack) {
-        await fetchQuota();
+        if (!hasTopics) {
+          await fetchQuota();
+        }
       }
     };
 
     run();
-  }, [trackId, isTrack, fetchExistingTopics, fetchQuota, topicsById]);
+  }, [trackId, isTrack, lyrics, fetchExistingTopics, fetchQuota, topicsById]);
 
   useEffect(() => {
+    const topicsMissing = !topicsById[trackId] || topicsById[trackId].length === 0;
+
+    if (!isTrack || !trackId || !topicsMissing) return;
+
     fetchQuota();
 
     const interval = setInterval(() => {
@@ -129,7 +133,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchQuota]);
+  }, [isTrack, trackId, topicsById, fetchQuota]);
 
   useEffect(() => {
     if (resetInSec === null || resetInSec <= 0) return;
@@ -146,7 +150,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
     lyrics &&
     lyrics.trim() !== "" &&
     !loadingTopics &&
-    topicsById[trackId] === null &&
+    (!topicsById[trackId] || topicsById[trackId].length === 0) &&
     requestsLeft !== null &&
     requestsLeft > 0;
 
