@@ -1,8 +1,23 @@
 .album-analysis-container {
-  max-width: 600px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+
+  width: 100%;
+  padding: 20px;
+
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #ffffff;
   font-size: 1.05rem;
+  box-sizing: border-box;
+}
+
+.audio-features,
+.tracks-clusters {
+  flex: 1;
+  min-width: 0;
 }
 
 .album-analysis-header {
@@ -74,4 +89,29 @@
   font-size: 1.1rem;
   user-select: none;
   color: #ffffff;
+}
+
+.scatter-chart-container {
+  border: 2px solid #394169;
+  border-radius: 6px;
+  padding: 4px;
+  box-sizing: border-box;
+  padding-top: 20px;
+  padding-right: 20px;
+}
+
+.tooltip-box {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+  position: relative;
+}
+
+.tooltip-box.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.recharts-surface:focus {
+  outline: none;
 }

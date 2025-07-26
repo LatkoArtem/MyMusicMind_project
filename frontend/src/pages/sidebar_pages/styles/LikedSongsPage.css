@@ -360,6 +360,7 @@ h3 {
 }
 
 .playlist-header {
+  height: auto;
   display: flex;
   gap: 3rem;
   background-color: #0c162d;

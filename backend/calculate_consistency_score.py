@@ -8,6 +8,9 @@ max_vector = np.array([1]*5 + [0, 1, 250, 1, 200, 300, 200, 150] + [120]*9 + [1]
 def calculate_consistency_score(vectors):
     vectors = np.array(vectors)
 
+    if len(vectors) < 2:
+        return 1.0
+
     # Мін-макс нормалізація в межах [0,1]
     diff = max_vector - min_vector
     diff[diff == 0] = 1

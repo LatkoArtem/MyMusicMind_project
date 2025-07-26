@@ -10,7 +10,7 @@ import { fetchLyrics } from "./utils/fetchLyrics";
 import StarRating from "./components/StarRating";
 
 const DetailPage = () => {
-  const { type, id } = useParams(); // "albums" | "artists" | "playlists" | "podcasts"
+  const { type, id } = useParams();
   const navigate = useNavigate();
 
   const [details, setDetails] = useState(null);
@@ -25,53 +25,120 @@ const DetailPage = () => {
   const [trackFeatures, setTrackFeatures] = useState([]);
   const [trackNames, setTrackNames] = useState([]);
   const [consistencyScore, setConsistencyScore] = useState(null);
+  const [trackClusters, setTrackClusters] = useState([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { viewMode, changeViewMode } = useViewMode();
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const resetState = () => {
+      setDetails(null);
+      setItems([]);
+      setFilteredItems([]);
+      setSelectedTrack(null);
+      setSelectedEpisode(null);
+      setLyrics(null);
+      setMeanFeatures(null);
+      setTrackFeatures([]);
+      setTrackNames([]);
+      setConsistencyScore(null);
+      setIsAnalyzing(false);
+    };
+
     const fetchAllData = async () => {
       try {
-        // Отримуємо основні деталі
-        const detailsRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}`, { withCredentials: true });
+        resetState();
+        const detailsRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}`, {
+          withCredentials: true,
+          signal: controller.signal,
+        });
+        if (!isMounted) return;
         setDetails(detailsRes.data);
 
-        // Завантажуємо треки / епізоди залежно від типу
         let tracksRes;
-        if (type === "albums") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, { withCredentials: true });
-          setItems(tracksRes.data.items);
 
-          // Запускаємо аналіз альбому одразу тут
-          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_album/${id}`, { withCredentials: true });
+        if (type === "albums") {
+          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+          const albumTracks = tracksRes.data.items;
+          setItems(albumTracks);
+
+          setIsAnalyzing(true);
+          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_album/${id}`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
           setMeanFeatures(analysisRes.data.feature_vector);
           setConsistencyScore(analysisRes.data.consistency_score);
           setTrackFeatures(analysisRes.data.track_features || []);
           setTrackNames(analysisRes.data.track_names || []);
-        } else if (type === "artists") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/top-tracks`, { withCredentials: true });
-          setItems(tracksRes.data.tracks);
-
-          // Якщо потрібно – тут можна додати інші запити
+          setTrackClusters(analysisRes.data.track_clusters || []);
+          setIsAnalyzing(false);
         } else if (type === "playlists") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, { withCredentials: true });
-          setItems(tracksRes.data.items.map(({ track }) => track).filter((track) => track && track.name));
+          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+          const playlistTracks = tracksRes.data.items
+            .map(({ track }) => track)
+            .filter(Boolean)
+            .slice(0, 50);
+          setItems(playlistTracks);
+
+          setIsAnalyzing(true);
+          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_playlist/${id}`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+          setMeanFeatures(analysisRes.data.feature_vector);
+          setConsistencyScore(analysisRes.data.consistency_score);
+          setTrackFeatures(analysisRes.data.track_features || []);
+          setTrackNames(analysisRes.data.track_names || []);
+          setTrackClusters(analysisRes.data.track_clusters || []);
+          setIsAnalyzing(false);
+        } else if (type === "artists") {
+          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/top-tracks`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+          setItems(tracksRes.data.tracks);
         } else if (type === "podcasts") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/episodes`, { withCredentials: true });
+          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/episodes`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
           setItems(tracksRes.data.items);
         }
       } catch (error) {
-        console.error("Error loading detail page:", error);
+        if (!axios.isCancel(error)) {
+          console.error("❌ Error loading detail page:", error);
+        }
+        if (isMounted) setIsAnalyzing(false);
       }
     };
 
     fetchAllData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [type, id]);
 
   useEffect(() => {
     if (!items) return setFilteredItems([]);
-
     const filtered = items.filter((item) => {
       const nameMatch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
-
       if (type === "podcasts") {
         const publisherMatch =
           item.show?.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,7 +151,6 @@ const DetailPage = () => {
         return nameMatch || artistsMatch;
       }
     });
-
     setFilteredItems(filtered);
   }, [searchTerm, items, type, details?.publisher]);
 
@@ -130,12 +196,8 @@ const DetailPage = () => {
   };
 
   const getImage = () => {
-    if (details.images) {
-      return details.images[0]?.url || "";
-    }
-    if (details.album?.images?.length) {
-      return details.album.images[0]?.url;
-    }
+    if (details.images) return details.images[0]?.url || "";
+    if (details.album?.images?.length) return details.album.images[0]?.url;
     return "";
   };
 
@@ -144,7 +206,7 @@ const DetailPage = () => {
       <ItemOverview
         image={getImage()}
         title={details.name}
-        analysisLabel={type}
+        analysisLabel={isAnalyzing ? "Analysis in progress... Do not leave the page" : type}
         backLabel={type}
         onBack={() => navigate(`/${type.charAt(0).toUpperCase() + type.slice(1)}Page`)}
         badges={renderBadges()}
@@ -153,6 +215,7 @@ const DetailPage = () => {
         spotifyUrl={details.external_urls?.spotify}
         trackFeatures={trackFeatures}
         trackNames={trackNames}
+        trackClusters={trackClusters}
         {...(type === "artists" && { imageClassName: "artist-cover" })}
       />
 
@@ -183,9 +246,7 @@ const DetailPage = () => {
         getImage={(track) => track.album?.images?.[0]?.url || getImage()}
         getTitle={(track) => track.name}
         getSubtitle={(item) => {
-          if (type === "podcasts") {
-            return item.show?.publisher || details?.publisher || "";
-          }
+          if (type === "podcasts") return item.show?.publisher || details?.publisher || "";
           return item.artists?.map((a) => a.name).join(", ") || "";
         }}
         itemKey={(track, idx) => `${track.id}-${idx}`}
