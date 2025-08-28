@@ -538,3 +538,9 @@ h3 {
 .analyze-button:hover {
   background-color: #2d689d;
 }
+
+.podcast-description {
+  color: white;
+  font-size: 1.2rem;
+  line-height: 1.4;
+}

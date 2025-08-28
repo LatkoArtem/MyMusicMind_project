@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 import AlbumOrPlaylistAnalysis from "./AlbumOrPlaylistAnalysis";
+import ArtistAnalysis from "./ArtistAnalysis";
 import SpotifyIcon from "../../../icons/SpotifyIcon";
+import ArtistModal from "./ArtistModal";
+import GenreEvolutionChart from "./GenreEvolutionChart";
 
 const ItemOverview = ({
   image,
@@ -8,6 +12,7 @@ const ItemOverview = ({
   onBack,
   badges,
   backLabel,
+  description,
   imageClassName = "",
   meanFeatures,
   consistencyScore,
@@ -15,8 +20,106 @@ const ItemOverview = ({
   trackFeatures = [],
   trackNames = [],
   trackClusters = [],
+  similarArtists = null,
   isLoading = false,
 }) => {
+  const [artistInfo, setArtistInfo] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [latestRelease, setLatestRelease] = useState(null);
+  const [loadingRelease, setLoadingRelease] = useState(false);
+  const [genreEvolution, setGenreEvolution] = useState(null);
+  const [loadingGenres, setLoadingGenres] = useState(false);
+
+  const fetchArtistBio = async (artistName) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8888/artist_info/name/${encodeURIComponent(artistName)}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch artist info");
+      const data = await response.json();
+      setArtistInfo(data);
+    } catch (error) {
+      console.error("❌ Error fetching artist bio:", error);
+    }
+  };
+
+  const openModal = async (artistName) => {
+    await fetchArtistBio(artistName);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => setIsModalOpen(false);
+
+  const renderSimilarArtists = () => {
+    if (similarArtists === null) {
+      return <p className="playlist-analysis">Searching for similar artists...</p>;
+    }
+
+    if (Array.isArray(similarArtists) && similarArtists.length === 0) {
+      return <p className="playlist-analysis">No similar artists found.</p>;
+    }
+
+    return <ArtistAnalysis similarArtists={similarArtists} isSimilarLoading={false} />;
+  };
+
+  useEffect(() => {
+    console.log("🎯 useEffect triggered with:", { title, analysisLabel });
+
+    if (analysisLabel !== "artists") {
+      console.log("Skipping fetch because analysisLabel is not 'artists'");
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoadingRelease(true);
+      setLoadingGenres(true);
+
+      try {
+        console.log("⏳ Fetching latest release...");
+        const releaseRes = await fetch(`http://127.0.0.1:8888/artist_latest_release/${encodeURIComponent(title)}`, {
+          credentials: "include",
+        });
+        if (!releaseRes.ok) throw new Error("Failed to fetch latest release");
+        const releaseData = await releaseRes.json();
+        console.log("✅ Latest release data:", releaseData);
+        setLatestRelease(releaseData);
+      } catch (err) {
+        console.error("❌ Error fetching latest release:", err);
+        setLatestRelease(null);
+      } finally {
+        setLoadingRelease(false);
+        console.log("⏳ Finished loading latest release:", false);
+      }
+
+      try {
+        console.log("⏳ Fetching genre evolution...");
+        const genreRes = await fetch(`http://127.0.0.1:8888/genre_evolution/${encodeURIComponent(title)}`, {
+          credentials: "include",
+        });
+        if (!genreRes.ok) throw new Error("Failed to fetch genre evolution");
+        const genreData = await genreRes.json();
+        console.log("✅ Genre evolution data:", genreData);
+        // Якщо дані приходять в об'єкті з ключем evolution, передаємо саме його
+        setGenreEvolution(genreData.evolution || genreData);
+      } catch (err) {
+        console.error("❌ Error fetching genre evolution:", err);
+        setGenreEvolution(null);
+      } finally {
+        setLoadingGenres(false);
+        console.log("⏳ Finished loading genre evolution:", false);
+      }
+    };
+
+    fetchData();
+  }, [title, analysisLabel]);
+
+  console.log("🔄 Render with states:", {
+    loadingRelease,
+    latestRelease,
+    loadingGenres,
+    genreEvolution,
+  });
+
   return (
     <div className="playlist-overview">
       <button className="back-button" onClick={onBack}>
@@ -49,25 +152,73 @@ const ItemOverview = ({
 
           <div className="playlist-right">
             <h2 className="playlist-info-title">{title}</h2>
-            {analysisLabel === "albums" || analysisLabel === "playlists" ? (
-              meanFeatures ? (
-                <AlbumOrPlaylistAnalysis
-                  analysisLabel="album"
-                  MeanFeatures={meanFeatures}
-                  consistencyScore={consistencyScore}
-                  trackFeatures={trackFeatures}
-                  trackNames={trackNames}
-                  trackClusters={trackClusters}
-                />
-              ) : (
-                <p></p>
-              )
+
+            {analysisLabel === "artists" && (
+              <button className="artist-info-button" onClick={() => openModal(title)}>
+                About the artist
+              </button>
+            )}
+
+            {(analysisLabel === "albums" || analysisLabel === "playlists") && meanFeatures ? (
+              <AlbumOrPlaylistAnalysis
+                analysisLabel={backLabel}
+                MeanFeatures={meanFeatures}
+                consistencyScore={consistencyScore}
+                trackFeatures={trackFeatures}
+                trackNames={trackNames}
+                trackClusters={trackClusters}
+              />
             ) : (
-              <p className="playlist-analysis">{analysisLabel}</p>
+              analysisLabel !== "artists" &&
+              analysisLabel !== "podcasts" && <p className="playlist-analysis">{analysisLabel}</p>
+            )}
+
+            {analysisLabel === "podcasts" && description && <p className="podcast-description">{description}</p>}
+
+            {analysisLabel === "artists" && (
+              <div className="similar-artists-section">
+                <h3 className="section-title">Last Release</h3>
+                {loadingRelease ? (
+                  <p className="playlist-analysis">Loading latest release...</p>
+                ) : latestRelease ? (
+                  <div className="latest-release">
+                    <img src={latestRelease.image} alt={latestRelease.name} className="latest-release-image" />
+                    <div className="latest-release-info">
+                      <p className="latest-release-name">{latestRelease.name}</p>
+                      <p className="latest-release-date">
+                        {latestRelease.release_type} • {latestRelease.release_date}
+                      </p>
+                      <a
+                        href={latestRelease.spotify_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="spotify-button"
+                      >
+                        <SpotifyIcon />
+                        Open in Spotify
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="playlist-analysis">No release data available.</p>
+                )}
+                <h3 className="section-title">Similar Artists</h3>
+                {renderSimilarArtists()}
+                <h3 className="section-title">Genre Evolution</h3>
+                {loadingGenres ? (
+                  <p className="playlist-analysis">Loading genre evolution...</p>
+                ) : genreEvolution ? (
+                  <GenreEvolutionChart data={genreEvolution} />
+                ) : (
+                  <p className="playlist-analysis">No genre data available.</p>
+                )}
+              </div>
             )}
           </div>
         </div>
       )}
+
+      {isModalOpen && artistInfo && <ArtistModal artistInfo={artistInfo} onClose={closeModal} />}
     </div>
   );
 };

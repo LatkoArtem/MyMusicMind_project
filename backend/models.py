@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import ARRAY
 from datetime import datetime, timezone
 
 db = SQLAlchemy()
@@ -50,4 +51,17 @@ class PlaylistTrackFeature(db.Model):
     features = db.Column(db.Text)  # JSON у текстовому вигляді
     cluster = db.Column(db.Integer, nullable=True)
     tags = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+class Rating(db.Model):
+    __tablename__ = "ratings"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    spotify_id = db.Column(db.String(64), nullable=False, unique=True)
+    name = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(16), nullable=False)
+    artist = db.Column(db.Text, nullable=False)
+    total_score = db.Column(db.SmallInteger, nullable=False)
+    scores = db.Column(ARRAY(db.SmallInteger), nullable=False, default=[])
+    cover_url = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -27,6 +27,7 @@ const DetailPage = () => {
   const [consistencyScore, setConsistencyScore] = useState(null);
   const [trackClusters, setTrackClusters] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [similarArtists, setSimilarArtists] = useState(null);
   const { viewMode, changeViewMode } = useViewMode();
 
   useEffect(() => {
@@ -111,13 +112,33 @@ const DetailPage = () => {
           });
           if (!isMounted) return;
           setItems(tracksRes.data.tracks);
-        } else if (type === "podcasts") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/episodes`, {
+
+          const similarRes = await axios.get(`http://127.0.0.1:8888/similar_artists/${detailsRes.data.name}`, {
             withCredentials: true,
             signal: controller.signal,
           });
           if (!isMounted) return;
-          setItems(tracksRes.data.items);
+          setSimilarArtists(Array.isArray(similarRes.data) ? similarRes.data : []);
+        } else if (type === "podcasts") {
+          // 1. Отримуємо деталі подкасту
+          const detailsResPodcast = await axios.get(`http://127.0.0.1:8888/podcasts/${id}`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+          const podcastDetails = detailsResPodcast.data;
+
+          // 2. Отримуємо епізоди подкасту
+          tracksRes = await axios.get(`http://127.0.0.1:8888/podcasts/${id}/episodes`, {
+            withCredentials: true,
+            signal: controller.signal,
+          });
+          if (!isMounted) return;
+
+          const episodesData = tracksRes.data;
+
+          setItems(episodesData.items || []);
+          setDetails(podcastDetails);
         }
       } catch (error) {
         if (!axios.isCancel(error)) {
@@ -208,6 +229,7 @@ const DetailPage = () => {
         title={details.name}
         analysisLabel={isAnalyzing ? "Analysis in progress... Do not leave the page" : type}
         backLabel={type}
+        description={details.description}
         onBack={() => navigate(`/${type.charAt(0).toUpperCase() + type.slice(1)}Page`)}
         badges={renderBadges()}
         meanFeatures={meanFeatures}
@@ -216,6 +238,7 @@ const DetailPage = () => {
         trackFeatures={trackFeatures}
         trackNames={trackNames}
         trackClusters={trackClusters}
+        similarArtists={similarArtists}
         {...(type === "artists" && { imageClassName: "artist-cover" })}
       />
 

@@ -157,7 +157,7 @@ const AlbumOrPlaylistAnalysis = ({
               onClick={() => setViewMode("track")}
               className={`album-analysis-button ${viewMode === "track" ? "active" : ""}`}
             >
-              Track
+              {analysisLabel === "playlist" && trackFeatures.length > 50 ? "Track (Top 50)" : "Track"}
             </button>
           </div>
         </div>

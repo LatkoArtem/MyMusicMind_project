@@ -4,6 +4,7 @@ import requests
 import json
 import time
 import numpy as np
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
@@ -11,7 +12,7 @@ from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
-from models import db, User, UserLyricsTopic, AnalyzedAlbum, AnalyzedPlaylist, AlbumTrackFeature, PlaylistTrackFeature
+from models import db, User, UserLyricsTopic, AnalyzedAlbum, AnalyzedPlaylist, AlbumTrackFeature, PlaylistTrackFeature, Rating
 from utils import hash_lyrics, is_request_allowed
 from cache_lyrics import get_cached_lyrics, set_cached_lyrics, get_cached_lyrics_by_track_id, set_cached_lyrics_by_track_id
 from yt_download_audio import download_audio
@@ -32,6 +33,8 @@ DB_HOST=os.getenv("DB_HOST")
 DB_NAME=os.getenv("DB_NAME")
 DB_USER=os.getenv("DB_USER")
 DB_PASS=os.getenv("DB_PASS")
+
+LASTFM_API_KEY=os.getenv("LASTFM_API_KEY")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -513,13 +516,13 @@ def get_saved_episodes():
 
 ############## GENIUS LYRICS PARSING ##############
 GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
-HEADERS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
+HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
 
 # Search for songs on Genius
 def search_genius(song_title, artist_name):
     base_url = "https://api.genius.com/search"
     query = f"{song_title} {artist_name}"
-    response = requests.get(base_url, params={"q": query}, headers=HEADERS)
+    response = requests.get(base_url, params={"q": query}, headers=HEADERS_GENIUS)
 
     if response.status_code != 200:
         return None
@@ -1083,6 +1086,568 @@ def analyze_playlist(playlist_id):
         "track_clusters": [int(result["cluster"]) for result in analysis_results]
     })
 ############## Playlist Analyze END ######################
+
+############## Artist Analyze ######################
+def get_spotify_headers():
+    access_token = session.get("access_token")
+    if not access_token:
+        return None
+    return {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+@app.route("/similar_artists/<artist_name>")
+def get_similar_artists_combined(artist_name):
+    # 1. Отримуємо схожих артистів з Last.fm
+    lastfm_url = "https://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "artist.getsimilar",
+        "artist": artist_name,
+        "api_key": LASTFM_API_KEY,
+        "format": "json",
+        "limit": 12
+    }
+    lastfm_response = requests.get(lastfm_url, params=params)
+    lastfm_data = lastfm_response.json()
+
+    if "similarartists" not in lastfm_data:
+        return jsonify({"error": "No similar artists found on Last.fm"}), 404
+
+    similar_names = [a["name"] for a in lastfm_data["similarartists"]["artist"]]
+
+    # 2. Шукаємо кожного артиста на Spotify
+    headers = get_spotify_headers()
+    if not headers:
+        return jsonify({"error": "Spotify access token missing"}), 401
+
+    result = []
+    seen_ids = set()
+    for name in similar_names:
+        search_params = {
+            "q": name,
+            "type": "artist",
+            "limit": 5
+        }
+        spotify_response = requests.get(f"https://api.spotify.com/v1/search", headers=headers, params=search_params)
+        spotify_data = spotify_response.json()
+
+        artists = spotify_data.get("artists", {}).get("items", [])
+        if not artists:
+            continue
+
+        name_lower = name.lower()
+        matched_artist = None
+        for artist in artists:
+            if artist["name"].lower() == name_lower:
+                matched_artist = artist
+                break
+        if matched_artist is None:
+            matched_artist = artists[0]
+
+        if matched_artist["followers"]["total"] < 5000:
+            continue
+
+        if matched_artist["id"] in seen_ids:
+            continue
+
+        seen_ids.add(matched_artist["id"])
+        result.append({
+            "id": matched_artist["id"],
+            "name": matched_artist["name"],
+            "spotify_url": matched_artist["external_urls"]["spotify"],
+            "image": matched_artist["images"][0]["url"] if matched_artist["images"] else None,
+        })
+
+    return jsonify(result)
+
+@app.route("/artist_info/<info_type>/<value>")
+def artist_info(info_type, value):
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Spotify access token missing"}), 401
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    artist_name = None
+    image = None
+    followers = None
+    spotify_url = None
+
+    if info_type == "id":
+        spotify_resp = requests.get(f"https://api.spotify.com/v1/artists/{value}", headers=headers)
+        if spotify_resp.status_code != 200:
+            return jsonify({"error": "Spotify artist fetch failed"}), 404
+        spotify_data = spotify_resp.json()
+        artist_name = spotify_data.get("name")
+        image = spotify_data["images"][0]["url"] if spotify_data.get("images") else None
+        followers = spotify_data.get("followers", {}).get("total", None)
+        spotify_url = spotify_data.get("external_urls", {}).get("spotify")
+
+    elif info_type == "name":
+        search_resp = requests.get(
+            "https://api.spotify.com/v1/search",
+            headers=headers,
+            params={"q": value, "type": "artist", "limit": 5},
+        )
+        if search_resp.status_code != 200:
+            return jsonify({"error": "Spotify search failed"}), 404
+        data = search_resp.json()
+        artists = data["artists"]["items"]
+        if not artists:
+            return jsonify({"error": "Artist not found"}), 404
+
+        value_lower = value.lower()
+        artist = None
+        for a in artists:
+            if a["name"].lower() == value_lower:
+                artist = a
+                break
+        if artist is None:
+            artist = artists[0]
+
+        artist_name = artist["name"]
+        image = artist["images"][0]["url"] if artist.get("images") else None
+        followers = artist.get("followers", {}).get("total", None)
+        spotify_url = artist.get("external_urls", {}).get("spotify")
+
+    else:
+        return jsonify({"error": "Invalid info_type. Must be 'id' or 'name'."}), 400
+
+    # Біографія з Last.fm
+    lastfm_url = "https://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "artist.getinfo",
+        "artist": artist_name,
+        "api_key": LASTFM_API_KEY,
+        "format": "json"
+    }
+    lastfm_response = requests.get(lastfm_url, params=params)
+    lastfm_data = lastfm_response.json()
+
+    bio = None
+    if "artist" in lastfm_data and "bio" in lastfm_data["artist"]:
+        raw_html = lastfm_data["artist"]["bio"].get("content") or lastfm_data["artist"]["bio"].get("summary", "")
+        if raw_html:
+            soup = BeautifulSoup(raw_html, "html.parser")
+            cleaned_text = soup.get_text()
+            cleaned_text = re.split(r'Read more on Last\.fm', cleaned_text)[0].strip()
+            bio = cleaned_text
+
+    return jsonify({
+        "name": artist_name,
+        "image": image,
+        "followers": followers,
+        "bio": bio,
+        "spotify_url": spotify_url
+    })
+
+@app.route("/artist_latest_release/<artist_name>")
+def artist_latest_release(artist_name):
+    headers = get_spotify_headers()
+
+    # Крок 1: Знайти артиста по імені
+    search_url = "https://api.spotify.com/v1/search"
+    search_params = {
+        "q": artist_name,
+        "type": "artist",
+        "limit": 5,
+    }
+    search_resp = requests.get(search_url, headers=headers, params=search_params)
+    search_data = search_resp.json()
+
+    if "artists" not in search_data or len(search_data["artists"]["items"]) == 0:
+        return jsonify({"error": "Artist not found"}), 404
+
+    artist_name_lower = artist_name.lower()
+    best_artist = None
+    for artist in search_data["artists"]["items"]:
+        if artist["name"].lower() == artist_name_lower:
+            best_artist = artist
+            break
+
+    if best_artist is None:
+        best_artist = search_data["artists"]["items"][0]
+
+    artist_id = best_artist["id"]
+
+    # Крок 2: Отримати всі релізи (обмежимося 20, або збільш за бажанням)
+    albums_url = f"https://api.spotify.com/v1/artists/{artist_id}/albums"
+    albums_params = {
+        "include_groups": "album,single",
+        "limit": 20,
+        "market": "US",
+    }
+    albums_resp = requests.get(albums_url, headers=headers, params=albums_params)
+    albums_data = albums_resp.json()
+
+    if "items" not in albums_data or len(albums_data["items"]) == 0:
+        return jsonify({"error": "No releases found"}), 404
+
+    def parse_release_date(album):
+        try:
+            return datetime.strptime(album["release_date"], "%Y-%m-%d")
+        except ValueError:
+            try:
+                return datetime.strptime(album["release_date"], "%Y-%m")
+            except ValueError:
+                return datetime.strptime(album["release_date"], "%Y")
+
+    sorted_albums = sorted(albums_data["items"], key=parse_release_date, reverse=True)
+    latest = sorted_albums[0]
+
+    return jsonify({
+        "name": latest["name"],
+        "release_date": latest["release_date"],
+        "release_type": latest["album_type"],  # "album" або "single"
+        "spotify_url": latest["external_urls"]["spotify"],
+        "image": latest["images"][0]["url"] if latest["images"] else None,
+    })
+
+def get_all_album_tracks(album_id, headers):
+    tracks = []
+    url = f"https://api.spotify.com/v1/albums/{album_id}/tracks?limit=50"
+
+    while url:
+        resp = requests.get(url, headers=headers)
+        if resp.status_code != 200:
+            print(f"❌ Error fetching tracks for album {album_id}")
+            break
+
+        data = resp.json()
+        tracks.extend(data.get("items", []))
+        url = data.get("next")
+
+    return tracks
+
+@app.route("/genre_evolution/<artist_name>")
+def genre_evolution(artist_name):
+    headers = get_spotify_headers()
+
+    # Тут список жанрів залишив без змін
+    allowed_genres = {
+        "Rap", "Hip-Hop", "R&B", "Pop", "Rock", "Country", "Jazz", "Blues",
+        "Electronic", "Dance", "Soul", "Funk", "Reggae", "Metal", "Punk",
+        "Classical", "Indie", "Alternative", "Latin", "Disco", "Gospel",
+        "Trap", "House", "Techno", "Dubstep", "Ambient", "K-Pop", "Grime",
+        "Ska", "Bluegrass", "Electro", "Drum & Bass", "Chillout", "Synthpop",
+        "Garage", "Trap Soul", "Lo-fi Hip-Hop", "Electro Swing", "Future Bass",
+        "Vaporwave", "Tropical House", "Post-Rock", "Shoegaze", "Dream Pop",
+        "Neo-Soul", "Emo", "Hard Rock", "Progressive Rock", "Folk", "Acoustic",
+        "Experimental", "Chillwave", "Trap Rap", "Christian", "Musical Theatre"
+    }
+
+    # Пошук артиста
+    search_resp = requests.get(
+        "https://api.spotify.com/v1/search",
+        headers=headers,
+        params={"q": artist_name, "type": "artist", "limit": 5}
+    )
+    search_data = search_resp.json()
+
+    if "artists" not in search_data or not search_data["artists"]["items"]:
+        return jsonify({"error": "Artist not found"}), 404
+
+    artist_name_lower = artist_name.lower()
+    best_artist = None
+    for artist in search_data["artists"]["items"]:
+        if artist["name"].lower() == artist_name_lower:
+            best_artist = artist
+            break
+
+    if best_artist is None:
+        best_artist = search_data["artists"]["items"][0]
+
+    artist_id = best_artist["id"]
+    print(f"Using artist: {best_artist['name']} with ID: {artist_id}")
+
+    albums_url = f"https://api.spotify.com/v1/artists/{artist_id}/albums"
+    albums_params = {
+        "include_groups": "album,single",
+        "limit": 50,
+        "market": "US",
+    }
+
+    all_albums = []
+    while albums_url:
+        resp = requests.get(albums_url, headers=headers, params=albums_params)
+        data = resp.json()
+        all_albums.extend(data.get("items", []))
+        albums_url = data.get("next")
+        albums_params = None
+
+    if not all_albums:
+        return jsonify({"error": "No albums found"}), 404
+
+    genre_by_year = defaultdict(lambda: defaultdict(int))
+    tracks_count_by_year = defaultdict(int)
+    seen_tracks_per_year = defaultdict(set)
+
+    # Для виводу результату структуровано
+    detailed_output = []
+
+    # Сортуємо альбоми по даті релізу, щоб було зрозуміло як вони йдуть
+    def album_release_key(album):
+        release_date = album.get("release_date", "")
+        for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
+            try:
+                return datetime.strptime(release_date, fmt)
+            except:
+                continue
+        return datetime.min
+
+    all_albums = sorted(all_albums, key=album_release_key)
+
+    for album in all_albums:
+        release_date = album.get("release_date", "")
+        year = None
+        for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
+            try:
+                year = datetime.strptime(release_date, fmt).year
+                break
+            except:
+                continue
+        if not year:
+            continue
+
+        album_id = album["id"]
+        album_name = album.get("name", "Unknown Album")
+
+        tracks = get_all_album_tracks(album_id, headers)
+
+        album_tracks_for_output = []
+
+        for track in tracks:
+            track_name = track["name"].strip().lower()
+            if track_name in seen_tracks_per_year[year]:
+                continue
+            seen_tracks_per_year[year].add(track_name)
+
+            tracks_count_by_year[year] += 1
+            album_tracks_for_output.append(track["name"])
+
+            # Пошук у Genius
+            genius_url = search_genius(track["name"], artist_name)
+            if not genius_url:
+                continue
+
+            try:
+                page = requests.get(genius_url)
+                soup = BeautifulSoup(page.text, "html.parser")
+                all_tags = [a.get_text(strip=True) for a in soup.select("a[href*='/tags/']")]
+                filtered_tags = [tag for tag in all_tags if tag in allowed_genres]
+
+                for tag in filtered_tags:
+                    genre_by_year[str(year)][tag] += 1
+
+            except Exception as e:
+                print(f"❌ Error parsing Genius page for track '{track['name']}': {e}")
+                continue
+
+        detailed_output.append({
+            "album_name": album_name,
+            "release_date": release_date,
+            "year": year,
+            "tracks": album_tracks_for_output
+        })
+
+    # Виводимо в консоль для контролю
+    print("\n=== Albums and tracks used in analysis ===")
+    for item in detailed_output:
+        print(f"{item['release_date']} — {item['album_name']} ({len(item['tracks'])} tracks):")
+        for t in item['tracks']:
+            print(f"   - {t}")
+    print("=== End of list ===\n")
+
+    result = {}
+    all_years = set(tracks_count_by_year.keys()) | set(int(y) for y in genre_by_year.keys())
+
+    for year in sorted(all_years):
+        year_str = str(year)
+        result[year_str] = {
+            "totalTracks": tracks_count_by_year.get(year, 0),
+            "genres": genre_by_year.get(year_str, {})
+        }
+
+    return jsonify(result)
+############## Artist Analyze END ######################
+
+SPOTIFY_SEARCH_URL = "https://api.spotify.com/v1/search"
+
+def get_spotify_token():
+    return session.get("access_token")
+
+def get_current_user_id():
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    return user_id
+
+@app.route("/api/search")
+def search():
+    query = request.args.get("query")
+    search_type = request.args.get("type", "track")  # за замовчуванням "track"
+
+    if not query:
+        return jsonify({f"{search_type}s": []})
+
+    token = get_spotify_token()
+    if not token:
+        return jsonify({"error": "Not authenticated with Spotify"}), 401
+
+    headers = {"Authorization": f"Bearer {token}"}
+    params = {"q": query, "type": search_type, "limit": 15}
+
+    resp = requests.get(SPOTIFY_SEARCH_URL, headers=headers, params=params)
+    if resp.status_code != 200:
+        return jsonify({"error": "Spotify API error"}), resp.status_code
+
+    data = resp.json()
+
+    if search_type == "track":
+        items = [
+            {
+                "id": t["id"],
+                "name": t["name"],
+                "artist": ", ".join([a["name"] for a in t["artists"]]),
+                "coverUrl": t["album"]["images"][0]["url"] if t["album"]["images"] else ""
+            }
+            for t in data.get("tracks", {}).get("items", [])
+        ]
+    elif search_type == "album":
+        items = [
+            {
+                "id": a["id"],
+                "name": a["name"],
+                "artist": ", ".join([ar["name"] for ar in a["artists"]]),
+                "coverUrl": a["images"][0]["url"] if a["images"] else ""
+            }
+            for a in data.get("albums", {}).get("items", [])
+        ]
+    else:
+        items = []
+
+    return jsonify({f"{search_type}s": items})
+
+# --- Повертає тільки оцінки поточного користувача ---
+@app.route("/api/ratings", methods=["GET"])
+def get_ratings():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    ratings = Rating.query.filter_by(user_id=user_id).order_by(Rating.created_at.desc()).all()
+    result = []
+    for r in ratings:
+        result.append({
+            "id": r.id,
+            "name": r.name,
+            "type": r.type,
+            "artist": r.artist,
+            "scores": r.scores,
+            "total_score": r.total_score,
+            "coverUrl": r.cover_url,
+            "spotify_id": r.spotify_id
+        })
+    return jsonify(result)
+
+# --- Додає або оновлює оцінку для користувача ---
+@app.route("/api/ratings", methods=["POST"])
+def add_rating():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    data = request.json
+    spotify_id = data.get("spotify_id")
+    if not spotify_id:
+        return jsonify({"error": "Missing spotify_id"}), 400
+
+    token = get_spotify_token()
+    if not token:
+        return jsonify({"error": "Not authenticated with Spotify"}), 401
+
+    headers = {"Authorization": f"Bearer {token}"}
+    item_type = data["type"]
+
+    resp = requests.get(f"https://api.spotify.com/v1/{item_type}s/{spotify_id}", headers=headers)
+    if resp.status_code != 200:
+        return jsonify({"error": "Spotify API error"}), resp.status_code
+
+    spotify_data = resp.json()
+    if item_type == "track":
+        cover_url = spotify_data["album"]["images"][0]["url"] if spotify_data.get("album") and spotify_data["album"].get("images") else ""
+        artist = ", ".join([a["name"] for a in spotify_data["artists"]])
+    else:
+        cover_url = spotify_data["images"][0]["url"] if spotify_data.get("images") else ""
+        artist = ", ".join([a["name"] for a in spotify_data.get("artists", [])])
+
+    new_rating = Rating(
+        user_id=user_id,
+        name=data["name"],
+        type=item_type,
+        artist=artist,
+        scores=data.get("scores", []),
+        total_score=data.get("finalScore"),
+        spotify_id=spotify_id,
+        cover_url=cover_url
+    )
+    db.session.add(new_rating)
+    db.session.commit()
+
+    return jsonify({"status": "ok", "id": new_rating.id})
+
+@app.route("/api/ratings/<int:rating_id>", methods=["PATCH"])
+def update_rating(rating_id):
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    rating = Rating.query.get_or_404(rating_id)
+    if rating.user_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    if "scores" in data:
+        rating.scores = data["scores"]
+    if "totalScore" in data:
+        rating.total_score = data["totalScore"]
+    db.session.commit()
+    return jsonify({"status": "ok"})
+
+@app.route("/api/<string:item_type>/<string:item_id>")
+def get_item(item_type, item_id):
+    token = get_spotify_token()
+    if not token:
+        return jsonify({"error": "Not authenticated with Spotify"}), 401
+
+    headers = {"Authorization": f"Bearer {token}"}
+    if item_type not in ["track", "album"]:
+        return jsonify({"error": "Invalid type"}), 400
+
+    url = f"https://api.spotify.com/v1/{item_type}s/{item_id}"
+    resp = requests.get(url, headers=headers)
+    if resp.status_code != 200:
+        return jsonify({"error": "Spotify API error"}), resp.status_code
+
+    data = resp.json()
+
+    if item_type == "track":
+        item = {
+            "id": data["id"],
+            "name": data["name"],
+            "artist": ", ".join([a["name"] for a in data["artists"]]),
+            "coverUrl": data["album"]["images"][0]["url"] if data["album"]["images"] else ""
+        }
+    else:  # album
+        item = {
+            "id": data["id"],
+            "name": data["name"],
+            "artist": ", ".join([a["name"] for a in data["artists"]]),
+            "coverUrl": data["images"][0]["url"] if data["images"] else ""
+        }
+
+    return jsonify(item)
+
 
 if __name__ == "__main__":
     with app.app_context():

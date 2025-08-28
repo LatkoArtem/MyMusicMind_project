@@ -58,12 +58,12 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/Page3" className={({ isActive }) => (isActive ? "active" : "")}>
-              Contacts
+            <NavLink to="/TrackAlbumRatings" className={({ isActive }) => (isActive ? "active" : "")}>
+              Track/album Ratings
             </NavLink>
           </li>
           <li>
-            <NavLink to="/Page4" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink to="/About" className={({ isActive }) => (isActive ? "active" : "")}>
               About
             </NavLink>
           </li>

@@ -1,0 +1,376 @@
+/* Сторінка */
+.ratings-page {
+  width: 100%;
+  display: flex;
+  color: #fff;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Центральний контейнер */
+.ratings-container {
+  width: 100%;
+  max-width: 1280px;
+  background: rgba(10, 12, 16, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.55);
+}
+
+/* ===== Верхня панель (іконка + вибір треку) ===== */
+.top-panel {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  background: linear-gradient(180deg, rgba(23, 26, 34, 0.95), rgba(14, 16, 22, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 28px;
+}
+.top-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #171b25, #0f1219);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.top-icon-note {
+  font-size: 42px;
+  opacity: 0.85;
+}
+.selectbox {
+  position: relative;
+  flex: 1;
+  height: 66px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #11141c, #0e1017);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px 0 20px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.selectbox:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.selectbox-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.selectbox-cover {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+/* Текст у боксі */
+.selectbox-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 950px;
+}
+
+/* Стрілочка */
+.selectbox-caret {
+  position: absolute;
+  right: 20px;
+  font-size: 28px;
+  color: #aaa;
+  transition: transform 0.2s ease;
+}
+
+/* При відкритому дропі — поворот */
+.selectbox.open .selectbox-caret {
+  transform: rotate(180deg);
+}
+
+/* Випадаюче меню */
+.type-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, #161922, #10121a);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  animation: dropdownFade 0.2s ease forwards;
+  z-index: 20;
+}
+
+/* Пункти */
+.type-dropdown div {
+  padding: 14px 20px;
+  font-size: 15px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.type-dropdown div:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Анімація появи */
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-wrapper {
+  position: relative;
+  width: 300px;
+  margin-top: 20px;
+}
+
+/* ===== Карти оцінок ===== */
+.rating-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 26px 26px 30px;
+}
+.rating-card--blue {
+  background: linear-gradient(180deg, rgba(9, 33, 65, 0.55), rgba(10, 22, 45, 0.55));
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.25);
+}
+.rating-card--purple {
+  margin-top: 18px;
+  background: linear-gradient(180deg, rgba(57, 17, 78, 0.55), rgba(33, 10, 55, 0.55));
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+/* 2-колоночна сітка */
+.rating-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 60px;
+  row-gap: 34px;
+}
+
+/* Рядок критерію */
+.rating-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.rating-label {
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  opacity: 0.9;
+}
+.rating-value {
+  font-size: 22px;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* Полоска */
+.rating-bar {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  overflow: visible;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.rating-bar--purple {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Заповнення */
+.rating-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4778ff 0%, #8d62ff 100%);
+}
+.rating-fill--purple {
+  background: linear-gradient(90deg, #8c3cff 0%, #c05fff 100%);
+}
+
+/* Слайдер */
+.rating-slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  z-index: 5;
+  margin: 0;
+}
+.rating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0 25%, #cfcfd0 26% 50%, #9a9aa0 51% 100%),
+    conic-gradient(from 0deg, rgba(255, 255, 255, 0.35), rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.35));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.rating-slider::-moz-range-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0 25%, #cfcfd0 26% 50%, #9a9aa0 51% 100%),
+    conic-gradient(from 0deg, rgba(255, 255, 255, 0.35), rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.35));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* ===== Низ: чек, 42/90, міні-цифри ===== */
+.score-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 26px;
+}
+.score-left {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+.check-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.check {
+  color: #0f1117;
+  font-weight: 800;
+  font-size: 38px;
+  line-height: 1;
+}
+.score-big-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+.score-big {
+  font-size: 130px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -1px;
+}
+.score-max {
+  font-size: 32px;
+  color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-10px);
+}
+.score-mini {
+  display: flex;
+  gap: 16px;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #4a60ff;
+  margin-bottom: 8px;
+}
+
+/* Кнопка збереження */
+.save-wrap {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.save-btn {
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #171a23;
+  color: #fff;
+  font-weight: 600;
+  font-size: 18px;
+  cursor: pointer;
+}
+.save-btn:hover {
+  background: #1d212c;
+}
+
+/* --- Елемент рейтингу (rating-item) --- */
+.rating-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.rating-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px #151f57, 0 0 50px #085b5b;
+}
+.rating-item-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* --- Трек / альбом (track-cover, track-title...) --- */
+.track-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.track-title {
+  font-size: 18px;
+  font-weight: 500;
+}
+.track-sub {
+  font-size: 13px;
+  opacity: 0.6;
+}
+.already-rated {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.already-rated .info-icon {
+  width: 20px;
+  height: 20px;
+  filter: invert(100%) brightness(200%);
+}

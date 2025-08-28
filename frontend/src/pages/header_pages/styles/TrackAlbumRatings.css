@@ -1,0 +1,179 @@
+/* --- Загальне тло сторінки --- */
+.ratings-page {
+  width: 100%;
+  min-height: calc(100vh - 115px);
+  backdrop-filter: blur(11px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+  font-family: "Orbitron", sans-serif;
+  color: white;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Контейнер оцінок --- */
+.ratings-container {
+  width: 100%;
+  max-width: 1400px;
+  padding: 40px;
+  background: rgba(15, 17, 24, 0.8);
+  border-radius: 24px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Кнопка "Нова оцінка" --- */
+.add-rating button {
+  padding: 15px 30px;
+  font-size: 18px;
+  border: 1px solid #2c4a7a;
+  border-radius: 10px;
+  background: #10294d;
+  color: #e0f2ff;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.add-rating button:hover {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* --- Пошук --- */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.search-input {
+  flex: 1;
+  max-width: 400px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+.search-input::placeholder {
+  color: #ccc;
+}
+
+/* --- Фільтри --- */
+.filter-buttons {
+  padding-top: 20px;
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.filter-buttons button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #2c4a7a;
+  background: #10294d;
+  color: #e0f2ff;
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.filter-buttons button.active,
+.filter-buttons button:hover {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* --- Список оцінених --- */
+.ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rating-card-element {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: white;
+  gap: 100px;
+  transition: background 0.3s ease;
+}
+.rating-card-element:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Ліва частина */
+.rating-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rating-cover {
+  width: 60px;
+  height: 60px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.rating-info {
+  display: flex;
+  flex-direction: column;
+}
+.rating-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+.rating-artist {
+  font-size: 14px;
+  color: #bbb;
+}
+
+/* Права частина */
+.rating-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.rating-score {
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+}
+.rating-score.highlight {
+  color: #ffd700; /* жовтий якщо ≥ 90 */
+}
+.rating-mini-scores {
+  white-space: nowrap;
+  margin-top: 6px;
+  display: flex;
+  gap: 8px; /* 🔹 відстань між оцінками */
+  font-size: 18px;
+}
+.mini-score {
+  color: "#703587ff";
+}
+.mini-score last {
+  color: "#3e50dbff";
+}
+/* --- Коли немає оцінок --- */
+.no-ratings {
+  text-align: center;
+  font-size: 18px;
+  opacity: 0.7;
+  margin-top: 40px;
+}
