@@ -61,12 +61,33 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
 SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control user-read-playback-position"
 
+# ----------- Routs ------------
+
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
     data = request.json
     with open(PROFILE_PATH, "w") as f:
         json.dump(data, f)
     return jsonify({"message": "Profile updated successfully"})
+
+@app.route("/profile/set-language", methods=["POST"])
+def set_language():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    language = data.get("language")
+    if language not in ["en", "uk"]:
+        return jsonify({"error": "Invalid language"}), 400
+
+    user = User.query.get(session["user_id"])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.language = language
+    db.session.commit()
+
+    return jsonify({"success": True, "language": language})
 
 @app.route("/login")
 def login():
@@ -125,7 +146,7 @@ def callback():
         if email:
             user = User.query.filter_by(email=email).first()
             if not user:
-                user = User(email=email)
+                user = User(email=email, language="en")
                 db.session.add(user)
                 db.session.commit()
             session["user_id"] = user.id
@@ -134,27 +155,29 @@ def callback():
 
 @app.route("/profile")
 def profile():
-    access_token = session.get("access_token")
-    if not access_token:
+    user_id = session.get("user_id")
+    if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    response = requests.get(
-        SPOTIFY_API_URL,
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-    print("👉 Spotify API status:", response.status_code)
-    print("👉 Spotify API response:", response.text)
+    spotify_data = {}
+    access_token = session.get("access_token")
+    if access_token:
+        response = requests.get(
+            SPOTIFY_API_URL,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        if response.status_code == 200:
+            spotify_data = response.json()
 
-    if response.status_code != 200:
-        return jsonify({"error": "Failed to fetch profile"}), 400
-
-    profile_data = response.json()
-
-    if os.path.exists(PROFILE_PATH):
-        with open(PROFILE_PATH) as f:
-            local_changes = json.load(f)
-            profile_data.update(local_changes)
+    profile_data = {
+        "email": user.email,
+        "language": user.language,
+        **{k: v for k, v in spotify_data.items() if k not in ["email", "language"]}
+    }
 
     return jsonify(profile_data)
 

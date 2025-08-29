@@ -5,9 +5,11 @@ import TopBar from "./components/TopBar";
 import MediaList from "./components/MediaList";
 import MediaSidePanel from "./components/MediaSidePanel";
 import { fetchLyrics } from "./utils/fetchLyrics";
+import { useTranslation } from "react-i18next";
 import "./styles/LikedSongsPage.css";
 
 const LikedSongsPage = () => {
+  const { t } = useTranslation();
   const [likedSongs, setLikedSongs] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState(null);
@@ -21,11 +23,16 @@ const LikedSongsPage = () => {
     axios
       .get("http://127.0.0.1:8888/liked-songs", { withCredentials: true })
       .then((res) => setLikedSongs(res.data))
-      .catch((err) => setError(err.response?.data || "Error fetching liked songs"))
+      .catch((err) => setError(err.response?.data || t("errorFetchingLikedSongs")))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [t]);
 
-  if (error) return <div>Error: {JSON.stringify(error)}</div>;
+  if (error)
+    return (
+      <div>
+        {t("error")}: {JSON.stringify(error)}
+      </div>
+    );
 
   const filteredSongs =
     likedSongs?.items.filter(
@@ -36,18 +43,18 @@ const LikedSongsPage = () => {
 
   return (
     <div className="page-container">
-      <h1>Liked Songs</h1>
+      <h1>{t("likedSongs")}</h1>
 
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         viewMode={viewMode}
         changeViewMode={changeViewMode}
-        placeholder="Search tracks or artists..."
+        placeholder={t("searchTracksOrArtists")}
       />
 
       {isLoading ? (
-        <div className="loading-message">Loading liked songs...</div>
+        <div className="loading-message">{t("loadingLikedSongs")}...</div>
       ) : (
         <MediaList
           items={filteredSongs.map(({ track }) => track)}

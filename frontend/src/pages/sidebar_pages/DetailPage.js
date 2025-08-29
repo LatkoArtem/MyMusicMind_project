@@ -8,8 +8,10 @@ import MediaSidePanel from "./components/MediaSidePanel";
 import ItemOverview from "./components/ItemOverview";
 import { fetchLyrics } from "./utils/fetchLyrics";
 import StarRating from "./components/StarRating";
+import { useTranslation } from "react-i18next";
 
 const DetailPage = () => {
+  const { t } = useTranslation();
   const { type, id } = useParams();
   const navigate = useNavigate();
 
@@ -120,7 +122,6 @@ const DetailPage = () => {
           if (!isMounted) return;
           setSimilarArtists(Array.isArray(similarRes.data) ? similarRes.data : []);
         } else if (type === "podcasts") {
-          // 1. Отримуємо деталі подкасту
           const detailsResPodcast = await axios.get(`http://127.0.0.1:8888/podcasts/${id}`, {
             withCredentials: true,
             signal: controller.signal,
@@ -128,7 +129,6 @@ const DetailPage = () => {
           if (!isMounted) return;
           const podcastDetails = detailsResPodcast.data;
 
-          // 2. Отримуємо епізоди подкасту
           tracksRes = await axios.get(`http://127.0.0.1:8888/podcasts/${id}/episodes`, {
             withCredentials: true,
             signal: controller.signal,
@@ -142,7 +142,7 @@ const DetailPage = () => {
         }
       } catch (error) {
         if (!axios.isCancel(error)) {
-          console.error("❌ Error loading detail page:", error);
+          console.error("❌ " + t("errorLoadingDetailPage"), error);
         }
         if (isMounted) setIsAnalyzing(false);
       }
@@ -154,7 +154,7 @@ const DetailPage = () => {
       isMounted = false;
       controller.abort();
     };
-  }, [type, id]);
+  }, [type, id, t]);
 
   useEffect(() => {
     if (!items) return setFilteredItems([]);
@@ -175,22 +175,22 @@ const DetailPage = () => {
     setFilteredItems(filtered);
   }, [searchTerm, items, type, details?.publisher]);
 
-  if (!details) return <div>Loading...</div>;
+  if (!details) return <div>{t("loading")}...</div>;
 
   const renderBadges = () => {
     switch (type) {
       case "albums":
         return [
-          { label: "Artist(s)", value: details.artists.map((a) => a.name).join(", ") },
-          { label: "Release Date", value: details.release_date },
-          { label: "Total Tracks", value: details.total_tracks },
-          { label: "Label", value: details.label || "N/A" },
+          { label: t("artist"), value: details.artists.map((a) => a.name).join(", ") },
+          { label: t("releaseDate"), value: details.release_date },
+          { label: t("totalTracks"), value: details.total_tracks },
+          { label: t("label"), value: details.label || "N/A" },
         ];
       case "artists":
         return [
-          { label: "Genres", value: details.genres.join(", ") || "N/A" },
+          { label: t("genres"), value: details.genres.join(", ") || "N/A" },
           {
-            label: "Popularity",
+            label: t("popularity"),
             value: (
               <div className="popularity-container">
                 <StarRating popularity={details.popularity} />
@@ -201,15 +201,15 @@ const DetailPage = () => {
         ];
       case "playlists":
         return [
-          { label: "Owner", value: details.owner.display_name },
-          { label: "Public", value: details.public ? "Yes" : "No" },
-          { label: "Collaborative", value: details.collaborative ? "Yes" : "No" },
-          { label: "Tracks", value: details.tracks.total },
+          { label: t("owner"), value: details.owner.display_name },
+          { label: t("public"), value: details.public ? t("yes") : t("no") },
+          { label: t("collaborative"), value: details.collaborative ? t("yes") : t("no") },
+          { label: t("tracks"), value: details.tracks.total },
         ];
       case "podcasts":
         return [
-          { label: "Publisher", value: details.publisher },
-          { label: "Total episodes", value: details.total_episodes },
+          { label: t("publisher"), value: details.publisher },
+          { label: t("totalEpisodes"), value: details.total_episodes },
         ];
       default:
         return [];
@@ -227,7 +227,7 @@ const DetailPage = () => {
       <ItemOverview
         image={getImage()}
         title={details.name}
-        analysisLabel={isAnalyzing ? "Analysis in progress... Do not leave the page" : type}
+        analysisLabel={isAnalyzing ? t("analysisInProgress") : type}
         backLabel={type}
         description={details.description}
         onBack={() => navigate(`/${type.charAt(0).toUpperCase() + type.slice(1)}Page`)}
@@ -242,14 +242,14 @@ const DetailPage = () => {
         {...(type === "artists" && { imageClassName: "artist-cover" })}
       />
 
-      {type === "artists" && <h1>Top tracks</h1>}
+      {type === "artists" && <h1>{t("topTracks")}</h1>}
 
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         viewMode={viewMode}
         changeViewMode={changeViewMode}
-        placeholder="Search tracks or artists..."
+        placeholder={t("searchTracksOrArtists")}
       />
 
       <MediaList

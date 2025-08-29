@@ -13,6 +13,7 @@ import {
   Tooltip,
 } from "recharts";
 import Select from "react-select";
+import { useTranslation } from "react-i18next";
 import "../styles/AlbumOrPlaylistAnalysis.css";
 
 const featureLabels = [
@@ -59,11 +60,11 @@ const AlbumOrPlaylistAnalysis = ({
   trackNames = [],
   trackClusters = [],
 }) => {
+  const { t, i18n } = useTranslation();
+
   const [viewMode, setViewMode] = useState("album");
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [scatterData, setScatterData] = useState([]);
-
-  // Стейти для автоматичного домену осей
   const [xDomain, setXDomain] = useState([0, 1]);
   const [yDomain, setYDomain] = useState([0, 1]);
 
@@ -81,7 +82,7 @@ const AlbumOrPlaylistAnalysis = ({
           y: features[2],
           cluster: trackClusters[idx],
           index: idx,
-          name: trackNames[idx] || `Track ${idx + 1}`,
+          name: trackNames[idx] || `${t("track")} ${idx + 1}`,
           tags,
         };
       });
@@ -107,12 +108,11 @@ const AlbumOrPlaylistAnalysis = ({
         setYDomain([0, 1]);
       }
     }
-  }, [trackFeatures, trackClusters, trackNames]);
+  }, [trackFeatures, trackClusters, trackNames, t]);
 
-  const label = analysisLabel === "playlists" ? "Playlist" : "Album";
+  const label = analysisLabel === "playlists" ? t("playlist") : t("album");
 
-  if ((!MeanFeatures || MeanFeatures.length === 0) && trackFeatures.length === 0)
-    return <p>No analysis data available.</p>;
+  if ((!MeanFeatures || MeanFeatures.length === 0) && trackFeatures.length === 0) return <p>{t("noData")}</p>;
 
   const albumFeaturesArr = typeof MeanFeatures === "string" ? JSON.parse(MeanFeatures) : MeanFeatures;
 
@@ -144,20 +144,20 @@ const AlbumOrPlaylistAnalysis = ({
     <div className="album-analysis-container">
       <div className="audio-features">
         <div className="album-analysis-header">
-          <h3 className="album-analysis-title">Audio Features</h3>
+          <h3 className="album-analysis-title">{t("audioFeatures")}</h3>
 
           <div className="album-analysis-toggle-buttons">
             <button
               onClick={() => setViewMode("album")}
               className={`album-analysis-button ${viewMode === "album" ? "active" : ""}`}
             >
-              {label}
+              {t("album")}
             </button>
             <button
               onClick={() => setViewMode("track")}
               className={`album-analysis-button ${viewMode === "track" ? "active" : ""}`}
             >
-              {analysisLabel === "playlist" && trackFeatures.length > 50 ? "Track (Top 50)" : "Track"}
+              {analysisLabel === "playlist" && trackFeatures.length > 50 ? t("trackTop50") : t("track")}
             </button>
           </div>
         </div>
@@ -176,26 +176,15 @@ const AlbumOrPlaylistAnalysis = ({
                 color: "#fff",
                 boxShadow: "0 0 4px rgba(140, 158, 255, 0.4)",
               }),
-              singleValue: (base) => ({
-                ...base,
-                color: "#ffffff",
-              }),
-              menu: (base) => ({
-                ...base,
-                backgroundColor: "#1e253a",
-                borderRadius: 6,
-              }),
+              singleValue: (base) => ({ ...base, color: "#ffffff" }),
+              menu: (base) => ({ ...base, backgroundColor: "#1e253a", borderRadius: 6 }),
               option: (base, state) => ({
                 ...base,
                 backgroundColor: state.isFocused ? "#8c9eff" : "#1e253a",
                 color: "#ffffff",
                 cursor: "pointer",
               }),
-              menuList: (base) => ({
-                ...base,
-                maxHeight: 350,
-                overflowY: "auto",
-              }),
+              menuList: (base) => ({ ...base, maxHeight: 350, overflowY: "auto" }),
             }}
           />
         )}
@@ -207,7 +196,7 @@ const AlbumOrPlaylistAnalysis = ({
               <PolarAngleAxis dataKey="feature" tick={{ fill: "#ffffff", fontWeight: 600, fontSize: 13 }} />
               <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} tickCount={5} />
               <Radar
-                name={viewMode === "album" ? "Album Mean Features" : "Track Features"}
+                name={viewMode === "album" ? t("albumMeanFeatures") : t("trackFeatures")}
                 dataKey="value"
                 stroke="#8c9eff"
                 fill="#8c9eff"
@@ -218,7 +207,7 @@ const AlbumOrPlaylistAnalysis = ({
         </div>
 
         <div className="album-analysis-consistency">
-          <div>{label} Consistency</div>
+          <div>{i18n.language === "uk" ? `Одностильність ${label}у` : `${label} ${t("consistency")}`}</div>
           <div>{scorePercent}%</div>
         </div>
 
@@ -226,14 +215,14 @@ const AlbumOrPlaylistAnalysis = ({
           <div className="album-analysis-progress-bar" style={{ width: `${scorePercent}%` }} />
         </div>
 
-        <p className="album-analysis-label">Score (from CHAOS to STYLE)</p>
+        <p className="album-analysis-label">{t("scoreLabel")}</p>
       </div>
 
       <div className="tracks-clusters">
         {scatterData.length > 0 && (
           <>
             <div className="album-analysis-header">
-              <h3 className="album-analysis-title">Tracks Clusters Visualization</h3>
+              <h3 className="album-analysis-title">{t("tracksClusters")}</h3>
             </div>
             <div className="scatter-chart-container">
               <ResponsiveContainer width="100%" height={470}>
@@ -268,11 +257,11 @@ const AlbumOrPlaylistAnalysis = ({
                             >
                               <strong>{p.name}</strong>
                               <br />
-                              Cluster: {p.cluster}
+                              {t("cluster")}: {p.cluster}
                               <br />
                               {p.tags && p.tags.length > 0 && (
                                 <>
-                                  Tags:
+                                  {t("tags")}:
                                   <ul style={{ fontStyle: "italic" }}>
                                     {p.tags.map((tag, i) => (
                                       <li key={i}>{tag}</li>

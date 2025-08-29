@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SearchIcon from "../../icons/SearchIcon";
 import "./styles/TrackAlbumRatings.css";
 
 export default function TrackAlbumRatings({ profile }) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState("all");
   const [ratingsData, setRatingsData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +32,7 @@ export default function TrackAlbumRatings({ profile }) {
     }
   };
 
-  // 🔑 watch profile: if null → clear ratings
+  // Watch profile: if null → clear ratings
   useEffect(() => {
     if (profile) {
       fetchRatings();
@@ -54,16 +56,14 @@ export default function TrackAlbumRatings({ profile }) {
     else navigate("/TrackAlbumRatings/RateTrackOrAlbum");
   };
 
-  if (loading) return <div className="ratings-page">Loading ratings...</div>;
-
-  // 🔑 check via profile
-  if (!profile) return <div className="ratings-page">Please log in to see your ratings.</div>;
+  if (loading) return <div className="ratings-page">{t("loading_ratings")}</div>;
+  if (!profile) return <div className="ratings-page">{t("login_prompt")}</div>;
 
   return (
     <div className="ratings-page">
       <div className="ratings-container">
         <div className="add-rating">
-          <button onClick={handleNewRating}>New Rating</button>
+          <button onClick={handleNewRating}>{t("new_rating")}</button>
         </div>
 
         <div className="search-wrapper">
@@ -72,7 +72,7 @@ export default function TrackAlbumRatings({ profile }) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search tracks or albums..."
+            placeholder={t("search_placeholder")}
             className="search-input"
           />
         </div>
@@ -80,14 +80,27 @@ export default function TrackAlbumRatings({ profile }) {
         <div className="filter-buttons">
           {["all", "track", "album"].map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={filter === f ? "active" : ""}>
-              {f === "all" ? "All" : f === "track" ? "Tracks" : "Albums"}
+              {f === "all" ? t("filter_all") : f === "track" ? t("filter_tracks") : t("filter_albums")}
             </button>
           ))}
         </div>
 
         <div className="ratings-list">
           {filtered.length === 0 && (
-            <div className="no-ratings">No rated {filter === "all" ? "tracks or albums" : filter + "s"}.</div>
+            <div className="no-ratings">
+              {t("no_ratings", {
+                type:
+                  filter === "all"
+                    ? t("filter_all").toLowerCase() +
+                      " " +
+                      t("filter_tracks").toLowerCase() +
+                      "/" +
+                      t("filter_albums").toLowerCase()
+                    : filter === "track"
+                    ? t("filter_tracks").toLowerCase()
+                    : t("filter_albums").toLowerCase(),
+              })}
+            </div>
           )}
 
           {filtered.map((item) => {

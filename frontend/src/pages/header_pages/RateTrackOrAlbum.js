@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import DiscIcon from "../../images/DiscIcon.png";
 import InfoIcon from "../../images/InfoIcon.png";
 import SearchIcon from "../../icons/SearchIcon";
 import "./styles/RateTrackOrAlbum.css";
 
 export default function RateTrackOrAlbum() {
+  const { t } = useTranslation();
   const { type: paramType, id } = useParams();
   const [type, setType] = useState(paramType || "track");
   const navigate = useNavigate();
@@ -70,14 +72,12 @@ export default function RateTrackOrAlbum() {
     navigate("/TrackAlbumRatings");
   };
 
-  // reset state on change
   useEffect(() => {
     setScores([5, 5, 5, 5, 5]);
     setExistingRating(null);
     setItemInfo(null);
   }, [id, type]);
 
-  // fetch details
   useEffect(() => {
     if (!id) return;
 
@@ -95,7 +95,6 @@ export default function RateTrackOrAlbum() {
     })();
   }, [id, type]);
 
-  // check if already rated
   useEffect(() => {
     if (!itemInfo) return;
 
@@ -117,7 +116,6 @@ export default function RateTrackOrAlbum() {
     })();
   }, [itemInfo]);
 
-  // realtime search
   useEffect(() => {
     if (!id && query.trim() !== "") {
       const timeout = setTimeout(async () => {
@@ -127,7 +125,6 @@ export default function RateTrackOrAlbum() {
         const data = await resp.json();
         setResults(data[`${type || "track"}s`] || []);
       }, 400);
-
       return () => clearTimeout(timeout);
     } else {
       setResults([]);
@@ -146,11 +143,7 @@ export default function RateTrackOrAlbum() {
                 <img
                   src={DiscIcon}
                   alt="Album"
-                  style={{
-                    width: "38px",
-                    height: "38px",
-                    filter: "invert(100%) brightness(200%)",
-                  }}
+                  style={{ width: "38px", height: "38px", filter: "invert(100%) brightness(200%)" }}
                 />
               )}
             </div>
@@ -158,7 +151,7 @@ export default function RateTrackOrAlbum() {
               className={`selectbox ${showTypeSelect ? "open" : ""}`}
               onClick={() => setShowTypeSelect(!showTypeSelect)}
             >
-              <div className="selectbox-text">{type === "track" ? "Track" : "Album"}</div>
+              <div className="selectbox-text">{type === "track" ? t("track") : t("album")}</div>
               <div className="selectbox-caret">▾</div>
               {showTypeSelect && (
                 <div className="type-dropdown">
@@ -168,7 +161,7 @@ export default function RateTrackOrAlbum() {
                       setShowTypeSelect(false);
                     }}
                   >
-                    Track
+                    {t("track")}
                   </div>
                   <div
                     onClick={() => {
@@ -176,21 +169,23 @@ export default function RateTrackOrAlbum() {
                       setShowTypeSelect(false);
                     }}
                   >
-                    Album
+                    {t("album")}
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          <h2>Search {type === "album" ? "Album" : "Track"}</h2>
+          <h2>
+            {t("search")} {type === "album" ? t("album1") : t("track1")}
+          </h2>
           <div className="search-wrapper">
             <SearchIcon />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Enter ${type === "album" ? "album" : "track"} name`}
+              placeholder={t("enter_name", { type: type === "album" ? t("album1") : t("track1") })}
               className="search-input"
             />
           </div>
@@ -218,17 +213,16 @@ export default function RateTrackOrAlbum() {
     );
   }
 
-  // rating
   const baseSum = scores[0] + scores[1] + scores[2] + scores[3];
   const baseScore = baseSum * 1.4;
   const finalScore = baseScore * vibeMultiplier[scores[4]];
   const isHighScore = finalScore >= 90;
   const criteria = [
-    { key: "rhymes", label: "Rhymes / Imagery" },
-    { key: "structure", label: "Structure / Rhythm" },
-    { key: "style", label: "Style Execution" },
-    { key: "individuality", label: "Individuality / Charisma" },
-    { key: "vibe", label: "Atmosphere / Vibe" },
+    { key: "rhymes", label: t("rhymes") },
+    { key: "structure", label: t("structure") },
+    { key: "style", label: t("style") },
+    { key: "individuality", label: t("individuality") },
+    { key: "vibe", label: t("vibe") },
   ];
   const firstFour = criteria.slice(0, 4);
 
@@ -243,11 +237,7 @@ export default function RateTrackOrAlbum() {
               <img
                 src={DiscIcon}
                 alt="Album"
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  filter: "invert(100%) brightness(200%)",
-                }}
+                style={{ width: "38px", height: "38px", filter: "invert(100%) brightness(200%)" }}
               />
             )}
           </div>
@@ -314,12 +304,7 @@ export default function RateTrackOrAlbum() {
 
         <div className="score-footer">
           <div className="score-left">
-            <div
-              className="check-circle"
-              style={{
-                backgroundColor: isHighScore ? "#FFD700" : "white",
-              }}
-            >
+            <div className="check-circle" style={{ backgroundColor: isHighScore ? "#FFD700" : "white" }}>
               <div className="check">✓</div>
             </div>
             <div className="score-big-wrap">
@@ -331,12 +316,7 @@ export default function RateTrackOrAlbum() {
           </div>
           <div className="score-mini">
             {scores.map((v, i) => (
-              <span
-                key={i}
-                style={{
-                  color: i === scores.length - 1 ? "#703587ff" : "#3e50dbff",
-                }}
-              >
+              <span key={i} style={{ color: i === scores.length - 1 ? "#703587ff" : "#3e50dbff" }}>
                 {v}
               </span>
             ))}
@@ -347,11 +327,11 @@ export default function RateTrackOrAlbum() {
           {existingRating && (
             <div className="already-rated">
               <img src={InfoIcon} alt="Info" className="info-icon" />
-              <span>You have already rated this {type === "album" ? "album" : "track"}.</span>
+              <span>{t("already_rated", { type: type === "album" ? t("album2") : t("track2") })}</span>
             </div>
           )}
           <button className="save-btn" onClick={handleSubmitRating}>
-            {existingRating ? "Update Rating" : "Save Rating"}
+            {existingRating ? t("update_rating") : t("save_rating")}
           </button>
         </div>
       </div>

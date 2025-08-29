@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AlbumOrPlaylistAnalysis from "./AlbumOrPlaylistAnalysis";
 import ArtistAnalysis from "./ArtistAnalysis";
 import SpotifyIcon from "../../../icons/SpotifyIcon";
@@ -23,6 +24,7 @@ const ItemOverview = ({
   similarArtists = null,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const [artistInfo, setArtistInfo] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [latestRelease, setLatestRelease] = useState(null);
@@ -52,11 +54,11 @@ const ItemOverview = ({
 
   const renderSimilarArtists = () => {
     if (similarArtists === null) {
-      return <p className="playlist-analysis">Searching for similar artists...</p>;
+      return <p className="playlist-analysis">{t("searchingSimilarArtists")}</p>;
     }
 
     if (Array.isArray(similarArtists) && similarArtists.length === 0) {
-      return <p className="playlist-analysis">No similar artists found.</p>;
+      return <p className="playlist-analysis">{t("noSimilarArtists")}</p>;
     }
 
     return <ArtistAnalysis similarArtists={similarArtists} isSimilarLoading={false} />;
@@ -99,7 +101,6 @@ const ItemOverview = ({
         if (!genreRes.ok) throw new Error("Failed to fetch genre evolution");
         const genreData = await genreRes.json();
         console.log("✅ Genre evolution data:", genreData);
-        // Якщо дані приходять в об'єкті з ключем evolution, передаємо саме його
         setGenreEvolution(genreData.evolution || genreData);
       } catch (err) {
         console.error("❌ Error fetching genre evolution:", err);
@@ -123,12 +124,16 @@ const ItemOverview = ({
   return (
     <div className="playlist-overview">
       <button className="back-button" onClick={onBack}>
-        ⬅ Back to {backLabel}
+        ⬅ {t("backTo")} {backLabel}
       </button>
 
       {isLoading ? (
         <div className="loading-analysis">
-          <p>Analyzing {analysisLabel === "albums" ? "album" : "playlist"}...</p>
+          <p>
+            {t("analyzing")}{" "}
+            {analysisLabel === "albums" ? t("album") : analysisLabel === "playlists" ? t("playlist") : ""}
+            ...
+          </p>
         </div>
       ) : (
         <div className="playlist-header">
@@ -145,7 +150,7 @@ const ItemOverview = ({
             {spotifyUrl && (
               <a href={spotifyUrl} target="_blank" rel="noopener noreferrer" className="spotify-button">
                 <SpotifyIcon />
-                Open in Spotify
+                {t("openInSpotify")}
               </a>
             )}
           </div>
@@ -155,7 +160,7 @@ const ItemOverview = ({
 
             {analysisLabel === "artists" && (
               <button className="artist-info-button" onClick={() => openModal(title)}>
-                About the artist
+                {t("aboutArtist")}
               </button>
             )}
 
@@ -177,9 +182,9 @@ const ItemOverview = ({
 
             {analysisLabel === "artists" && (
               <div className="similar-artists-section">
-                <h3 className="section-title">Last Release</h3>
+                <h3 className="section-title">{t("lastRelease")}</h3>
                 {loadingRelease ? (
-                  <p className="playlist-analysis">Loading latest release...</p>
+                  <p className="playlist-analysis">{t("loadingLatestRelease")}</p>
                 ) : latestRelease ? (
                   <div className="latest-release">
                     <img src={latestRelease.image} alt={latestRelease.name} className="latest-release-image" />
@@ -195,22 +200,22 @@ const ItemOverview = ({
                         className="spotify-button"
                       >
                         <SpotifyIcon />
-                        Open in Spotify
+                        {t("openInSpotify")}
                       </a>
                     </div>
                   </div>
                 ) : (
-                  <p className="playlist-analysis">No release data available.</p>
+                  <p className="playlist-analysis">{t("noReleaseData")}</p>
                 )}
-                <h3 className="section-title">Similar Artists</h3>
+                <h3 className="section-title">{t("similarArtists")}</h3>
                 {renderSimilarArtists()}
-                <h3 className="section-title">Genre Evolution</h3>
+                <h3 className="section-title">{t("genreEvolution")}</h3>
                 {loadingGenres ? (
-                  <p className="playlist-analysis">Loading genre evolution...</p>
+                  <p className="playlist-analysis">{t("loadingGenreEvolution")}</p>
                 ) : genreEvolution ? (
                   <GenreEvolutionChart data={genreEvolution} />
                 ) : (
-                  <p className="playlist-analysis">No genre data available.</p>
+                  <p className="playlist-analysis">{t("noGenreData")}</p>
                 )}
               </div>
             )}

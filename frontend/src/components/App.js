@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import i18n from "../i18n";
+
 import Header from "./Header";
 import Home from "../pages/header_pages/Home";
-import Page2 from "../pages/header_pages/Page2";
 import TrackAlbumRatings from "../pages/header_pages/TrackAlbumRatings";
 import RateTrackOrAlbum from "../pages/header_pages/RateTrackOrAlbum";
 import About from "../pages/header_pages/About";
@@ -22,25 +23,31 @@ import Background from "../images/Background.png";
 
 function App() {
   const [profile, setProfile] = useState(null);
+  const [langReady, setLangReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const API_URL = "http://127.0.0.1:8888";
-  const navigate = useNavigate(); // 👈 додав
+  const navigate = useNavigate();
 
-  const fetchProfile = () => {
-    fetch(`${API_URL}/profile`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Not authenticated");
-        return res.json();
-      })
-      .then((data) => {
-        setProfile(data);
-      })
-      .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`${API_URL}/profile`, { credentials: "include" });
+      if (!res.ok) throw new Error("Not authenticated");
+
+      const data = await res.json();
+
+      // встановлюємо мову з профілю перед рендером
+      if (data.language && data.language !== i18n.language) {
+        await i18n.changeLanguage(data.language);
+      }
+
+      setProfile(data);
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoading(false);
+      setLangReady(true);
+    }
   };
 
   const handleLogin = () => {
@@ -53,13 +60,8 @@ function App() {
       credentials: "include",
     })
       .then(() => {
-        // очищаємо профіль
         setProfile(null);
-
-        // 👉 кидаємо подію для всіх компонентів
         window.dispatchEvent(new Event("logout"));
-
-        // 👉 редірект на головну без повного релоаду
         navigate("/");
       })
       .catch((err) => console.error("Logout failed:", err));
@@ -73,6 +75,8 @@ function App() {
     fetchProfile();
   }, []);
 
+  if (!langReady) return null;
+
   return (
     <div
       className="AppWrapper"
@@ -85,10 +89,10 @@ function App() {
       }}
     >
       <Header profile={profile} onLogin={handleLogin} onLogout={handleLogout} loading={loading} />
+
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/Page2" element={<Page2 />} />
           <Route path="/TrackAlbumRatings" element={<TrackAlbumRatings profile={profile} />} />
           <Route path="/About" element={<About />} />
           <Route path="/Page5" element={<Page5 />} />
@@ -102,7 +106,7 @@ function App() {
           <Route path="/ArtistsPage" element={<ArtistsPage />} />
           <Route path="/PodcastsPage" element={<PodcastsPage />} />
 
-          {/* Detail page for (Playlists, Albums, Artists, Podcasts) pages*/}
+          {/* Detail page */}
           <Route path="/:type/:id" element={<DetailPage />} />
           <Route path="/TrackAlbumRatings/RateTrackOrAlbum" element={<RateTrackOrAlbum />} />
           <Route path="/TrackAlbumRatings/RateTrackOrAlbum/:type" element={<RateTrackOrAlbum />} />

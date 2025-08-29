@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import SpotifyIcon from "../../../icons/SpotifyIcon";
+import { useTranslation } from "react-i18next";
 
 const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDetails }) => {
+  const { t } = useTranslation();
+
   const [topicsById, setTopicsById] = useState({});
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [infoTopics, setInfoTopics] = useState(null);
@@ -15,13 +18,13 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   const trackId = item.id;
 
   const imageUrl = item.images?.[0]?.url || item.album?.images?.[0]?.url || albumDetails?.images?.[0]?.url;
-  const albumName = item.album?.name || albumDetails?.name || "Unknown Album";
-  const releaseDate = item.album?.release_date || albumDetails?.release_date || "Unknown";
+  const albumName = item.album?.name || albumDetails?.name || t("unknownAlbum");
+  const releaseDate = item.album?.release_date || albumDetails?.release_date || t("unknown");
   const artistNames = isTrack
-    ? item.artists?.map((a) => a.name).join(", ") || "Unknown Artist"
+    ? item.artists?.map((a) => a.name).join(", ") || t("unknownArtist")
     : isEpisode
-    ? item.show?.name || albumDetails.publisher || "Unknown Show"
-    : "Unknown";
+    ? item.show?.name || albumDetails.publisher || t("unknownShow")
+    : t("unknown");
 
   const formatResetTime = (seconds) => {
     if (!seconds || seconds <= 0) return "00:00:00";
@@ -68,7 +71,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
 
   const handleAnalyzeClick = async () => {
     if (!lyrics || lyrics.trim() === "") {
-      setInfoTopics("Lyrics not available yet");
+      setInfoTopics(t("lyricsNotAvailable"));
       setErrorTopics(null);
       return;
     }
@@ -94,7 +97,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
       if (error.response?.data?.error) {
         setErrorTopics(error.response.data.error);
       } else {
-        setErrorTopics("Failed to fetch key topics");
+        setErrorTopics(t("failedFetchKeyTopics"));
       }
     } finally {
       setLoadingTopics(false);
@@ -170,13 +173,13 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
           {isTrack && (
             <>
               <p>
-                <strong>Album:</strong> {albumName}
+                <strong>{t("album")}:</strong> {albumName}
               </p>
               <p>
-                <strong>Release date:</strong> {releaseDate}
+                <strong>{t("releaseDate")}:</strong> {releaseDate}
               </p>
               <p>
-                <strong>Duration:</strong> {Math.floor(item.duration_ms / 60000)}:
+                <strong>{t("duration")}:</strong> {Math.floor(item.duration_ms / 60000)}:
                 {String(Math.floor((item.duration_ms % 60000) / 1000)).padStart(2, "0")}
               </p>
             </>
@@ -185,10 +188,10 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
           {isEpisode && (
             <>
               <p>
-                <strong>Release date:</strong> {item.release_date}
+                <strong>{t("releaseDate")}:</strong> {item.release_date}
               </p>
               <p className="episode-description">
-                <strong>Description:</strong> {item.description}
+                <strong>{t("description")}:</strong> {item.description}
               </p>
             </>
           )}
@@ -197,16 +200,16 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
         {item.external_urls?.spotify && (
           <a href={item.external_urls.spotify} target="_blank" rel="noopener noreferrer" className="spotify-button">
             <SpotifyIcon />
-            Open in Spotify
+            {t("openInSpotify")}
           </a>
         )}
 
         {isTrack && (
           <>
             <div className="lyrics-section">
-              <h4>Lyrics</h4>
+              <h4>{t("lyrics")}</h4>
               {isLoadingLyrics ? (
-                <div className="lyrics-text">🎵 Loading lyrics...</div>
+                <div className="lyrics-text">🎵 {t("loadingLyrics")}</div>
               ) : lyrics && lyrics.trim() !== "" ? (
                 <pre className="lyrics-text">
                   {lyrics.split("\n").map((line, idx) => (
@@ -217,20 +220,20 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
                   ))}
                 </pre>
               ) : (
-                <div className="lyrics-text">Lyrics not available yet</div>
+                <div className="lyrics-text">{t("lyricsNotAvailable")}</div>
               )}
             </div>
 
-            {showAnalyzeButton ? (
+            {showAnalyzeButton && (
               <>
                 <button onClick={handleAnalyzeClick} disabled={loadingTopics} className="analyze-button">
-                  {loadingTopics ? "Analyzing..." : "Show Thematic Words"}
+                  {loadingTopics ? t("analyzing-dots") : t("showKeyTopics")}
                 </button>
                 <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "green" }}>
-                  Requests left today: {requestsLeft}
+                  {t("requestsLeftToday")}: {requestsLeft}
                 </div>
               </>
-            ) : null}
+            )}
 
             {isTrack &&
               lyrics &&
@@ -241,7 +244,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
               !isLoadingLyrics &&
               (!topicsById[trackId] || topicsById[trackId].length === 0) && (
                 <div style={{ marginTop: "1rem", fontSize: "0.9rem", color: "red" }}>
-                  Daily limit exceeded. Next requests available in {formatResetTime(resetInSec)}
+                  {t("dailyLimitExceeded")}: {formatResetTime(resetInSec)}
                 </div>
               )}
 
@@ -251,7 +254,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
               {!loadingTopics && !isLoadingLyrics && errorTopics && <div style={{ color: "red" }}>{errorTopics}</div>}
               {!loadingTopics && !isLoadingLyrics && !errorTopics && !infoTopics && topicsById[trackId]?.length > 0 && (
                 <div>
-                  <strong>Key topics:</strong>{" "}
+                  <strong>{t("keyTopics")}:</strong>{" "}
                   {topicsById[trackId].map((topic, idx) => (
                     <span key={idx} className="topic-word">
                       {topic}

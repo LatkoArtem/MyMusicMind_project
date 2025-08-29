@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import useViewMode from "./hooks/useGridListToggle";
 import TopBar from "./components/TopBar";
 import MediaList from "./components/MediaList";
+import { useTranslation } from "react-i18next";
 import "./styles/LikedSongsPage.css";
 
 const AlbumsPage = () => {
+  const { t } = useTranslation();
+
   const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,11 +22,16 @@ const AlbumsPage = () => {
     axios
       .get("http://127.0.0.1:8888/albums", { withCredentials: true })
       .then((res) => setAlbums(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching albums"))
+      .catch((err) => setError(err.response?.data || t("errorFetchingAlbums")))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [t]);
 
-  if (error) return <div>Error: {JSON.stringify(error)}</div>;
+  if (error)
+    return (
+      <div>
+        {t("error")}: {JSON.stringify(error)}
+      </div>
+    );
 
   const filteredAlbums = albums.filter(
     (album) =>
@@ -33,16 +41,16 @@ const AlbumsPage = () => {
 
   return (
     <div className="page-container">
-      <h1>Albums</h1>
+      <h1>{t("albums")}</h1>
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         viewMode={viewMode}
         changeViewMode={changeViewMode}
-        placeholder="Search albums or artists..."
+        placeholder={t("searchAlbumsOrArtists")}
       />
       {isLoading ? (
-        <div>Loading albums...</div>
+        <div>{t("loadingAlbums")}</div>
       ) : (
         <MediaList
           items={filteredAlbums}

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import "./styles/ProfilePage.css";
 
 const ProfilePage = ({ profile }) => {
+  const { t } = useTranslation();
   const initialAvatar = profile?.avatar || profile?.images?.[0]?.url || null;
 
   const [formData, setFormData] = useState({
@@ -71,7 +73,7 @@ const ProfilePage = ({ profile }) => {
 
       const result = await response.json();
 
-      setMessage(result.message || "Profile updated successfully!");
+      setMessage(result.message || t("success"));
     } catch (error) {
       setMessage("Error saving profile. Please try again.");
       console.error(error);
@@ -80,35 +82,35 @@ const ProfilePage = ({ profile }) => {
 
   return (
     <div className="ProfileEditContainer">
-      <h2>Edit Profile</h2>
+      <h2>{t("title")}</h2>
       <form className="ProfileForm" onSubmit={handleSubmit}>
         <div className="AvatarDisplay">
           {formData.avatar ? (
             <img src={formData.avatar} alt="Avatar" className="AvatarPreview" />
           ) : (
-            <div className="AvatarPlaceholder">No Avatar</div>
+            <div className="AvatarPlaceholder">{t("noAvatar")}</div>
           )}
         </div>
 
         <label>
-          Display Name:
+          {t("displayName")}:
           <input type="text" name="display_name" value={formData.display_name} disabled />
         </label>
 
         <label>
-          Email:
+          {t("email")}:
           <input type="email" name="email" value={formData.email} disabled />
         </label>
 
         <label className="BioText">
-          Description:
+          {t("description")}:
           <textarea
             type="text"
             name="bio"
             value={formData.bio}
             onChange={handleBioChange}
             onKeyDown={handleBioKeyDown}
-            placeholder="Tell us something about yourself..."
+            placeholder={t("placeholder")}
             rows={5}
             maxLength={250}
             style={{
@@ -120,7 +122,7 @@ const ProfilePage = ({ profile }) => {
           />
           <div className="charCount">{formData.bio.length} / 250</div>
         </label>
-        <button type="submit">Save Changes</button>
+        <button type="submit">{t("saveBtn")}</button>
         {message && <p className="SuccessMessage">{message}</p>}
       </form>
     </div>

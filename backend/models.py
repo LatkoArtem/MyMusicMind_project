@@ -7,6 +7,7 @@ db = SQLAlchemy()
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
+    language = db.Column(db.String(4), default="en")
 
 class UserLyricsTopic(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import axios from "axios";
 import ArtistModal from "./ArtistModal";
+import { useTranslation } from "react-i18next";
 import "../styles/ArtistAnalysis.css";
 
 const ArtistAnalysis = ({ similarArtists, isSimilarLoading }) => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [artistInfo, setArtistInfo] = useState(null);
 
@@ -25,11 +27,11 @@ const ArtistAnalysis = ({ similarArtists, isSimilarLoading }) => {
   };
 
   if (isSimilarLoading || similarArtists === null || similarArtists === undefined) {
-    return <p className="loading-text">Loading similar artists...</p>;
+    return <p className="loading-text">{t("loadingSimilarArtists")}</p>;
   }
 
   if (Array.isArray(similarArtists) && similarArtists.length === 0) {
-    return <p>No similar artists found.</p>;
+    return <p>{t("noSimilarArtists")}</p>;
   }
 
   return (
@@ -40,7 +42,7 @@ const ArtistAnalysis = ({ similarArtists, isSimilarLoading }) => {
             <img src={artist.image || "/placeholder.jpg"} alt={artist.name} className="artist-image" />
             <p className="artist-name">{artist.name}</p>
             <button className="artist-info-button" onClick={() => openModal(artist.id)}>
-              About the artist
+              {t("aboutArtist")}
             </button>
           </div>
         ))}

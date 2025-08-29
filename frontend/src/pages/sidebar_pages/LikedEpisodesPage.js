@@ -4,9 +4,11 @@ import useViewMode from "./hooks/useGridListToggle";
 import TopBar from "./components/TopBar";
 import MediaList from "./components/MediaList";
 import MediaSidePanel from "./components/MediaSidePanel";
+import { useTranslation } from "react-i18next";
 import "./styles/LikedSongsPage.css";
 
 const LikedEpisodesPage = () => {
+  const { t } = useTranslation();
   const [likedEpisodes, setLikedEpisodes] = useState(null);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [error, setError] = useState(null);
@@ -17,10 +19,15 @@ const LikedEpisodesPage = () => {
     axios
       .get("http://127.0.0.1:8888/my-episodes", { withCredentials: true })
       .then((res) => setLikedEpisodes(res.data))
-      .catch((err) => setError(err.response?.data || "Error fetching liked episodes"));
-  }, []);
+      .catch((err) => setError(err.response?.data || t("errorFetchingLikedEpisodes")));
+  }, [t]);
 
-  if (error) return <div>Error: {JSON.stringify(error)}</div>;
+  if (error)
+    return (
+      <div>
+        {t("error")}: {JSON.stringify(error)}
+      </div>
+    );
 
   const filteredEpisodes =
     likedEpisodes?.items
@@ -33,18 +40,18 @@ const LikedEpisodesPage = () => {
 
   return (
     <div className="page-container">
-      <h1>Liked Episodes</h1>
+      <h1>{t("likedEpisodes")}</h1>
 
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         viewMode={viewMode}
         changeViewMode={changeViewMode}
-        placeholder="Search episodes or shows..."
+        placeholder={t("searchEpisodesOrShows")}
       />
 
       {!likedEpisodes ? (
-        <div>Loading liked episodes...</div>
+        <div>{t("loadingLikedEpisodes")}...</div>
       ) : (
         <MediaList
           items={filteredEpisodes}

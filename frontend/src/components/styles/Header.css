@@ -227,6 +227,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
 }
 
 .DropdownMenuSectionSVG {
@@ -238,6 +239,10 @@
 .DropdownMenuSectionText {
   font-size: 1rem;
   color: white;
+}
+
+.DropdownMenuSection:hover .DropdownMenuSectionText {
+  color: #8d8d8d;
 }
 
 button {

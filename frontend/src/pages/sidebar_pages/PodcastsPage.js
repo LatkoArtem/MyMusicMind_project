@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import useViewMode from "./hooks/useGridListToggle";
 import TopBar from "./components/TopBar";
 import MediaList from "./components/MediaList";
+import { useTranslation } from "react-i18next";
 import "./styles/LikedSongsPage.css";
 
 const PodcastsPage = () => {
+  const { t } = useTranslation();
   const [podcasts, setPodcasts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,11 +20,16 @@ const PodcastsPage = () => {
     axios
       .get("http://127.0.0.1:8888/podcasts", { withCredentials: true })
       .then((res) => setPodcasts(res.data.items || []))
-      .catch((err) => setError(err.response?.data || "Error fetching podcasts"))
+      .catch((err) => setError(err.response?.data || t("errorFetchingPodcasts")))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [t]);
 
-  if (error) return <div>Error: {JSON.stringify(error)}</div>;
+  if (error)
+    return (
+      <div>
+        {t("error")}: {JSON.stringify(error)}
+      </div>
+    );
 
   const filteredPodcasts = podcasts.filter((p) => {
     const name = p.name?.toLowerCase() || "";
@@ -36,16 +43,16 @@ const PodcastsPage = () => {
 
   return (
     <div className="page-container">
-      <h1>Podcasts</h1>
+      <h1>{t("podcasts")}</h1>
       <TopBar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         viewMode={viewMode}
         changeViewMode={changeViewMode}
-        placeholder="Search podcasts..."
+        placeholder={t("searchPodcasts")}
       />
       {isLoading ? (
-        <div>Loading podcasts...</div>
+        <div>{t("loadingPodcasts")}...</div>
       ) : (
         <MediaList
           items={filteredPodcasts}

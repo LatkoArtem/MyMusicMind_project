@@ -1,7 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const GenreEvolutionChart = ({ data }) => {
+  const { t } = useTranslation();
+
   const chartData = useMemo(() => {
     const years = Object.keys(data).sort();
     return years.map((year) => ({
@@ -17,9 +20,11 @@ const GenreEvolutionChart = ({ data }) => {
       const genreEntries = Object.entries(yearData.genres).filter(([, count]) => count > 0);
 
       return (
-        <div style={{ background: "#2a2a2a", padding: 10 }}>
+        <div style={{ background: "#2a2a2a", padding: 10, color: "#fff" }}>
           <strong>{label}</strong>
-          <div>Total tracks: {yearData.total}</div>
+          <div>
+            {t("totalTracks")}: {yearData.total}
+          </div>
           <ul style={{ margin: 0, paddingLeft: 16 }}>
             {genreEntries.map(([genre, count]) => (
               <li key={genre}>
