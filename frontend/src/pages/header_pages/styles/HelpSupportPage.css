@@ -1,0 +1,103 @@
+.help-container {
+  max-width: 1200px; /* Збільшено ширину */
+  margin: 40px auto;
+  padding: 40px 30px;
+  font-family: "Orbitron", sans-serif;
+  color: white;
+  background: #0b0c10;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.help-title {
+  font-size: 38px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  color: #1e90ff;
+}
+
+.help-subtitle {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 16px;
+  color: #c5c6c7;
+}
+
+.faq-list {
+  margin-bottom: 40px;
+}
+
+.faq-item {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #1f2833;
+  padding-bottom: 10px;
+}
+
+.faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 18px;
+  text-align: left;
+  cursor: pointer;
+  padding: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: color 0.3s;
+}
+
+.faq-question:hover {
+  color: #1e90ff;
+}
+
+.arrow {
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.faq-answer {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #c5c6c7;
+  line-height: 1.6;
+}
+
+.faq-item.active .faq-answer {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.help-contact {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.contact-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #1e90ff;
+  color: white;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.contact-btn:hover {
+  background: #63b3ed;
+  color: black;
+}

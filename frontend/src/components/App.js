@@ -9,6 +9,7 @@ import RateTrackOrAlbum from "../pages/header_pages/RateTrackOrAlbum";
 import About from "../pages/header_pages/About";
 import Page5 from "../pages/header_pages/Page5";
 import ProfilePage from "../pages/header_pages/ProfilePage";
+import HelpSupportPage from "../pages/header_pages/HelpSupportPage";
 
 import LikedSongsPage from "../pages/sidebar_pages/LikedSongsPage";
 import LikedEpisodesPage from "../pages/sidebar_pages/LikedEpisodesPage";
@@ -97,6 +98,7 @@ function App() {
           <Route path="/About" element={<About />} />
           <Route path="/Page5" element={<Page5 />} />
           <Route path="/Profile" element={<ProfilePage profile={profile} onUpdate={handleProfileUpdate} />} />
+          <Route path="/HelpSupport" element={<HelpSupportPage />} />
 
           {/* Sidebar routes */}
           <Route path="/LikedSongsPage" element={<LikedSongsPage />} />

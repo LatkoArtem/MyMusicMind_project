@@ -152,7 +152,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                     </span>
                   </div>
 
-                  <div className="DropdownMenuSection">
+                  <Link to="/HelpSupport" className="DropdownMenuSection" onClick={() => setDropdownOpen(false)}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -168,7 +168,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                       />
                     </svg>
                     <span className="DropdownMenuSectionText">{t("help_support")}</span>
-                  </div>
+                  </Link>
 
                   <hr className="DropdownDivider" />
                   <button className="LogoutButton" onClick={onLogout}>
