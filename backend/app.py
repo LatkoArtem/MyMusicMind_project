@@ -183,7 +183,7 @@ def profile():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.pop("access_token", None)
+    session.clear()
     response = jsonify({"message": "Logged out"})
     response.delete_cookie('session')
     return response, 200

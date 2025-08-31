@@ -193,5 +193,49 @@
   "contact_question": "What if I can't find an answer?",
   "contact_answer": "Click the button below to email us, and we'll help you with any question.",
   "contact_prompt": "Didn't find the answer to your question?",
-  "contact_button": "Contact Support"
+  "contact_button": "Contact Support",
+
+  "hero": {
+    "badge": "Beta — your music analyst",
+    "welcome": "Welcome!",
+    "subtitle": "Rate music and discover hidden patterns",
+    "description": "The service connects your Spotify profile, song lyrics (Genius), LLM theme analysis, and audio features (Essentia) to build flexible ratings, compare albums, and visualize style with spider charts."
+  },
+  "buttons": {
+    "startRating": "Start rating",
+    "myRatings": "View my ratings",
+    "profile": "Profile"
+  },
+  "sections": {
+    "quickActions": "Quick actions",
+    "library": "My library",
+    "features": "What's inside"
+  },
+  "quick": {
+    "rate": { "title": "Rate a track or album", "desc": "Quickly add a rating and save it to your list." },
+    "myRatings": { "title": "My ratings", "desc": "Browse your album and track ratings." },
+    "profile": { "title": "Profile", "desc": "Manage language, account, and access settings." },
+    "tops": {
+      "title": "Tops & recommendations",
+      "desc": "Top artists and tracks by week, month, year + your recommendations."
+    }
+  },
+  "library": {
+    "likedSongs": { "title": "Liked songs", "desc": "Your collection of favorite tracks." },
+    "playlists": { "title": "Playlists", "desc": "Manage and view your playlists." },
+    "albums": { "title": "Albums", "desc": "Saved releases and compilations." },
+    "artists": { "title": "Artists", "desc": "All artists from your library." },
+    "podcasts": { "title": "Podcasts", "desc": "Your collection of shows to listen to." },
+    "episodes": { "title": "Liked episodes", "desc": "Saved podcast episodes." }
+  },
+  "feats": {
+    "themes": { "title": "Track themes", "desc": "Detecting human-friendly themes from song lyrics (LLM)." },
+    "audio": { "title": "Audio analysis", "desc": "Essentia + custom metrics: danceability, mood, tempo_norm, etc." },
+    "spider": { "title": "Spider charts", "desc": "Compare album or playlist tracks and check stylistic consistency." },
+    "cache": { "title": "Cache & speed", "desc": "Caching tracks, lyrics, themes, and more for instant access." }
+  },
+  "modal": {
+    "loginRequired": "Please log in first",
+    "close": "Close"
+  }
 }

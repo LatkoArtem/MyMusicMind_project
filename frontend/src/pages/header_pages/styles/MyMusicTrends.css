@@ -1,0 +1,13 @@
+.mytrends-page {
+  width: 100%;
+  min-height: calc(100vh - 115px);
+  backdrop-filter: blur(11px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+  color: white;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}

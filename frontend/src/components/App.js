@@ -7,7 +7,7 @@ import Home from "../pages/header_pages/Home";
 import TrackAlbumRatings from "../pages/header_pages/TrackAlbumRatings";
 import RateTrackOrAlbum from "../pages/header_pages/RateTrackOrAlbum";
 import About from "../pages/header_pages/About";
-import Page5 from "../pages/header_pages/Page5";
+import MyMusicTrends from "../pages/header_pages/MyMusicTrends";
 import ProfilePage from "../pages/header_pages/ProfilePage";
 import HelpSupportPage from "../pages/header_pages/HelpSupportPage";
 
@@ -96,7 +96,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/TrackAlbumRatings" element={<TrackAlbumRatings profile={profile} />} />
           <Route path="/About" element={<About />} />
-          <Route path="/Page5" element={<Page5 />} />
+          <Route path="/MyMusicTrends" element={<MyMusicTrends />} />
           <Route path="/Profile" element={<ProfilePage profile={profile} onUpdate={handleProfileUpdate} />} />
           <Route path="/HelpSupport" element={<HelpSupportPage />} />
 

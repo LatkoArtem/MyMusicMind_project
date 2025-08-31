@@ -84,13 +84,13 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/About" className={({ isActive }) => (isActive ? "active" : "")}>
-              {t("about")}
+            <NavLink to="/MyMusicTrends" className={({ isActive }) => (isActive ? "active" : "")}>
+              {t("more")}
             </NavLink>
           </li>
           <li>
-            <NavLink to="/Page5" className={({ isActive }) => (isActive ? "active" : "")}>
-              {t("more")}
+            <NavLink to="/About" className={({ isActive }) => (isActive ? "active" : "")}>
+              {t("about")}
             </NavLink>
           </li>
         </ul>
