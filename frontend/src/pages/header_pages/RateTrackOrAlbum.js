@@ -54,14 +54,14 @@ export default function RateTrackOrAlbum() {
     };
 
     if (existingRating) {
-      await fetch(`http://127.0.0.1:8888/api/ratings/${existingRating.id}`, {
+      await fetch(`https://mymusicmind.netlify.app/api/ratings/${existingRating.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ scores, totalScore: finalScore }),
       });
     } else {
-      await fetch("http://127.0.0.1:8888/api/ratings", {
+      await fetch("https://mymusicmind.netlify.app/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -83,7 +83,7 @@ export default function RateTrackOrAlbum() {
 
     (async () => {
       try {
-        const resp = await fetch(`http://127.0.0.1:8888/api/${type}/${id}`, {
+        const resp = await fetch(`https://mymusicmind.netlify.app/api/${type}/${id}`, {
           credentials: "include",
         });
         if (!resp.ok) return;
@@ -100,7 +100,7 @@ export default function RateTrackOrAlbum() {
 
     (async () => {
       try {
-        const resp = await fetch(`http://127.0.0.1:8888/api/ratings`, {
+        const resp = await fetch(`https://mymusicmind.netlify.app/api/ratings`, {
           credentials: "include",
         });
         if (!resp.ok) return;
@@ -119,7 +119,7 @@ export default function RateTrackOrAlbum() {
   useEffect(() => {
     if (!id && query.trim() !== "") {
       const timeout = setTimeout(async () => {
-        const resp = await fetch(`http://127.0.0.1:8888/api/search?type=${type || "track"}&query=${query}`, {
+        const resp = await fetch(`https://mymusicmind.netlify.app/api/search?type=${type || "track"}&query=${query}`, {
           credentials: "include",
         });
         const data = await resp.json();

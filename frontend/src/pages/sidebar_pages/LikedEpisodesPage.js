@@ -17,7 +17,7 @@ const LikedEpisodesPage = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/my-episodes", { withCredentials: true })
+      .get("https://mymusicmind.netlify.app/my-episodes", { withCredentials: true })
       .then((res) => setLikedEpisodes(res.data))
       .catch((err) => setError(err.response?.data || t("errorFetchingLikedEpisodes")));
   }, [t]);

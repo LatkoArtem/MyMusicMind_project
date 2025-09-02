@@ -32,7 +32,7 @@ const MyMusicTrends = () => {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8888/profile", { credentials: "include" });
+        const res = await fetch("https://mymusicmind.netlify.app/profile", { credentials: "include" });
         if (res.status === 200) {
           const data = await res.json();
           setProfileData(data);
@@ -58,10 +58,10 @@ const MyMusicTrends = () => {
       setLoading(true);
       try {
         const [artistsRes, tracksRes] = await Promise.all([
-          fetch(`http://127.0.0.1:8888/spotify/top-artists?time_range=${period}&limit=20`, {
+          fetch(`https://mymusicmind.netlify.app/spotify/top-artists?time_range=${period}&limit=20`, {
             credentials: "include",
           }),
-          fetch(`http://127.0.0.1:8888/spotify/top-tracks?time_range=${period}&limit=50`, {
+          fetch(`https://mymusicmind.netlify.app/spotify/top-tracks?time_range=${period}&limit=50`, {
             credentials: "include",
           }),
         ]);

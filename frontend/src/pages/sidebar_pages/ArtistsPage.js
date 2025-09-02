@@ -19,7 +19,7 @@ const ArtistsPage = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/artists", { withCredentials: true })
+      .get("https://mymusicmind.netlify.app/artists", { withCredentials: true })
       .then((res) => setArtists(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingArtists")))
       .finally(() => setIsLoading(false));

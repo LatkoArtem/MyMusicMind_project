@@ -4,7 +4,7 @@ export const fetchLyrics = async (track, setLyrics, setIsLoadingLyrics) => {
   setIsLoadingLyrics(true);
   setLyrics(null);
   try {
-    const response = await axios.get("http://127.0.0.1:8888/get_lyrics", {
+    const response = await axios.get("https://mymusicmind.netlify.app/get_lyrics", {
       params: {
         song: track.name,
         artist: track.artists[0].name,

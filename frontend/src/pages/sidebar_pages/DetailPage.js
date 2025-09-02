@@ -53,7 +53,7 @@ const DetailPage = () => {
     const fetchAllData = async () => {
       try {
         resetState();
-        const detailsRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}`, {
+        const detailsRes = await axios.get(`https://mymusicmind.netlify.app/${type}/${id}`, {
           withCredentials: true,
           signal: controller.signal,
         });
@@ -63,7 +63,7 @@ const DetailPage = () => {
         let tracksRes;
 
         if (type === "albums") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, {
+          tracksRes = await axios.get(`https://mymusicmind.netlify.app/${type}/${id}/tracks`, {
             withCredentials: true,
             signal: controller.signal,
           });
@@ -72,7 +72,7 @@ const DetailPage = () => {
           setItems(albumTracks);
 
           setIsAnalyzing(true);
-          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_album/${id}`, {
+          const analysisRes = await axios.get(`https://mymusicmind.netlify.app/analyze_album/${id}`, {
             withCredentials: true,
             signal: controller.signal,
           });
@@ -84,7 +84,7 @@ const DetailPage = () => {
           setTrackClusters(analysisRes.data.track_clusters || []);
           setIsAnalyzing(false);
         } else if (type === "playlists") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/tracks`, {
+          tracksRes = await axios.get(`https://mymusicmind.netlify.app/${type}/${id}/tracks`, {
             withCredentials: true,
             signal: controller.signal,
           });
@@ -96,7 +96,7 @@ const DetailPage = () => {
           setItems(playlistTracks);
 
           setIsAnalyzing(true);
-          const analysisRes = await axios.get(`http://127.0.0.1:8888/analyze_playlist/${id}`, {
+          const analysisRes = await axios.get(`https://mymusicmind.netlify.app/analyze_playlist/${id}`, {
             withCredentials: true,
             signal: controller.signal,
           });
@@ -108,28 +108,31 @@ const DetailPage = () => {
           setTrackClusters(analysisRes.data.track_clusters || []);
           setIsAnalyzing(false);
         } else if (type === "artists") {
-          tracksRes = await axios.get(`http://127.0.0.1:8888/${type}/${id}/top-tracks`, {
+          tracksRes = await axios.get(`https://mymusicmind.netlify.app/${type}/${id}/top-tracks`, {
             withCredentials: true,
             signal: controller.signal,
           });
           if (!isMounted) return;
           setItems(tracksRes.data.tracks);
 
-          const similarRes = await axios.get(`http://127.0.0.1:8888/similar_artists/${detailsRes.data.name}`, {
-            withCredentials: true,
-            signal: controller.signal,
-          });
+          const similarRes = await axios.get(
+            `https://mymusicmind.netlify.app/similar_artists/${detailsRes.data.name}`,
+            {
+              withCredentials: true,
+              signal: controller.signal,
+            }
+          );
           if (!isMounted) return;
           setSimilarArtists(Array.isArray(similarRes.data) ? similarRes.data : []);
         } else if (type === "podcasts") {
-          const detailsResPodcast = await axios.get(`http://127.0.0.1:8888/podcasts/${id}`, {
+          const detailsResPodcast = await axios.get(`https://mymusicmind.netlify.app/podcasts/${id}`, {
             withCredentials: true,
             signal: controller.signal,
           });
           if (!isMounted) return;
           const podcastDetails = detailsResPodcast.data;
 
-          tracksRes = await axios.get(`http://127.0.0.1:8888/podcasts/${id}/episodes`, {
+          tracksRes = await axios.get(`https://mymusicmind.netlify.app/podcasts/${id}/episodes`, {
             withCredentials: true,
             signal: controller.signal,
           });

@@ -18,7 +18,7 @@ const PodcastsPage = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/podcasts", { withCredentials: true })
+      .get("https://mymusicmind.netlify.app/podcasts", { withCredentials: true })
       .then((res) => setPodcasts(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingPodcasts")))
       .finally(() => setIsLoading(false));

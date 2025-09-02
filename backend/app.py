@@ -54,7 +54,7 @@ app.config['SESSION_USE_SIGNER'] = True
 Session(app)
 
 # CORS config
-CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
+CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -125,17 +125,17 @@ def refresh_spotify_access_token():
 @app.route("/callback")
 def callback():
     if not session.get("expecting_callback"):
-        return redirect("http://127.0.0.1:3000?error=unexpected_callback")
+        return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
 
     error = request.args.get("error")
     if error:
-        return redirect("http://127.0.0.1:3000?error=access_denied")
+        return redirect("https://mymusicmind.netlify.app?error=access_denied")
 
     code = request.args.get("code")
     if not code:
-        return redirect("http://127.0.0.1:3000?error=no_code")
+        return redirect("https://mymusicmind.netlify.app?error=no_code")
 
     response = requests.post(
         SPOTIFY_TOKEN_URL,
@@ -150,7 +150,7 @@ def callback():
     )
 
     if response.status_code != 200:
-        return redirect("http://127.0.0.1:3000?error=token_failed")
+        return redirect("https://mymusicmind.netlify.app?error=token_failed")
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
@@ -173,7 +173,7 @@ def callback():
                 db.session.commit()
             session["user_id"] = user.id
 
-    return redirect("http://127.0.0.1:3000")
+    return redirect("https://mymusicmind.netlify.app")
 
 @app.route("/profile")
 def profile():
@@ -181,7 +181,7 @@ def profile():
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
@@ -1842,4 +1842,4 @@ def get_recommendations():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # Create Tables if not already present
-    app.run(port=8888, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8888)), debug=False)

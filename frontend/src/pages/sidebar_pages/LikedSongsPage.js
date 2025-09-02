@@ -21,7 +21,7 @@ const LikedSongsPage = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8888/liked-songs", { withCredentials: true })
+      .get("https://mymusicmind.netlify.app/liked-songs", { withCredentials: true })
       .then((res) => setLikedSongs(res.data))
       .catch((err) => setError(err.response?.data || t("errorFetchingLikedSongs")))
       .finally(() => setIsLoading(false));

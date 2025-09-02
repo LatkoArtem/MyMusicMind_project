@@ -23,7 +23,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8888/profile", { credentials: "include" })
+    fetch("https://mymusicmind.netlify.app/profile", { credentials: "include" })
       .then((res) => setIsLoggedIn(res.status === 200))
       .catch(() => setIsLoggedIn(false));
   }, []);
