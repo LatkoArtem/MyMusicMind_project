@@ -5,7 +5,7 @@ import MyMusicMindLogo from "../images/MyMusicMindLogo2_crop.png";
 import ProfileIcon from "../images/ProfileIcon.png";
 import "./styles/Header.css";
 
-const Header = ({ profile, onLogin, onLogout, loading }) => {
+const Header = ({ profile, onLogin, loading }) => {
   const { t, i18n } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -28,9 +28,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
     try {
       await fetch("http://127.0.0.1:8888/profile/set-language", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ language: newLang }),
       });
@@ -49,6 +47,18 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://127.0.0.1:8888/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+    window.location.reload();
+  };
 
   return (
     <>
@@ -85,7 +95,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
           </li>
           <li>
             <NavLink to="/MyMusicTrends" className={({ isActive }) => (isActive ? "active" : "")}>
-              {t("more")}
+              {t("my_music_trends")}
             </NavLink>
           </li>
           <li>
@@ -135,7 +145,6 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                     <span className="DropdownMenuSectionText">{t("profile")}</span>
                   </Link>
 
-                  {/* Language Switch Button */}
                   <div className="DropdownMenuSection" onClick={handleLanguageSwitch}>
                     <img
                       src="https://img.icons8.com/ios/50/globe--v1.png"
@@ -171,7 +180,7 @@ const Header = ({ profile, onLogin, onLogout, loading }) => {
                   </Link>
 
                   <hr className="DropdownDivider" />
-                  <button className="LogoutButton" onClick={onLogout}>
+                  <button className="LogoutButton" onClick={handleLogout}>
                     {t("logout")}
                   </button>
                 </div>

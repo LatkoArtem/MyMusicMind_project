@@ -1,0 +1,97 @@
+/* --- Контейнер рекомендацій --- */
+.recommendations-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.recommendations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.recommendations-timestamp {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+/* --- Кнопка рекомендацій на всю ширину --- */
+.trends-periods-button {
+  width: 100%;
+  max-width: 600px; /* обмежує ширину на великих екранах */
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  background: rgba(77, 77, 77, 0.3);
+  border: 1px solid rgba(209, 209, 209, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  display: block;
+}
+
+.trends-periods-button:hover:not(:disabled) {
+  background: rgba(209, 209, 209, 0.3);
+}
+
+.trends-periods-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Треки рекомендацій (як секція трендів) --- */
+.recommendations-track-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.recommendations-track-name {
+  font-weight: bold;
+  flex: 1;
+}
+
+/* --- Кнопка Spotify для треків/артистів --- */
+.recommendations-spotify-button {
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(30, 215, 96, 0.1);
+  color: #1db954;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.recommendations-spotify-button:hover {
+  background: rgba(30, 215, 96, 0.2);
+}
+
+/* --- Мобільні пристрої --- */
+@media (max-width: 768px) {
+  .trends-periods-button {
+    padding: 0.6rem 0.8rem;
+  }
+
+  .recommendations-track-thumb {
+    width: 48px;
+    height: 48px;
+  }
+
+  .recommendations-spotify-button {
+    padding: 0.2rem 0.4rem;
+  }
+}

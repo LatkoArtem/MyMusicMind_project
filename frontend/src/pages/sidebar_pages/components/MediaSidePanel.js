@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import "../styles/MediaSidePanel.css";
 import axios from "axios";
 import SpotifyIcon from "../../../icons/SpotifyIcon";
 import { useTranslation } from "react-i18next";
@@ -229,7 +230,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
                 <button onClick={handleAnalyzeClick} disabled={loadingTopics} className="analyze-button">
                   {loadingTopics ? t("analyzing-dots") : t("showKeyTopics")}
                 </button>
-                <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "green" }}>
+                <div style={{ marginTop: "0.5rem", paddingBottom: "2rem", fontSize: "0.9rem", color: "green" }}>
                   {t("requestsLeftToday")}: {requestsLeft}
                 </div>
               </>

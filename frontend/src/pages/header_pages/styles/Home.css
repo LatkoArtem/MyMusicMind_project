@@ -188,12 +188,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 9999;
 }
 
 .login-modal {
   background: #1e1e1e;
-  padding: 25px 30px;
+  padding: 25px 20px; /* трохи менше padding з боків */
   border-radius: 12px;
   text-align: center;
   max-width: 400px;
@@ -211,16 +211,17 @@
 /* Стилізована кнопка закриття */
 .login-modal-close-btn {
   position: absolute;
-  top: 10px;
+  top: 8px;
   right: 10px;
   background: #333;
   border: none;
-  border-radius: 50%;
   color: white;
   font-size: 16px;
-  width: 32px;
   height: 32px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background-color 0.2s ease;
 }
 

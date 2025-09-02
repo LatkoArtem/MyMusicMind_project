@@ -2,7 +2,7 @@
   "home": "Головна",
   "track_album_ratings": "Оцінка треку/альбому",
   "about": "Про нас",
-  "more": "Більше",
+  "my_music_trends": "Мої музичні тренди",
   "profile": "Профіль",
   "switch_to_uk": "EN",
   "switch_to_en": "UA",
@@ -47,7 +47,9 @@
   "filter_tracks": "Треки",
   "filter_albums": "Альбоми",
   "loading_ratings": "Завантаження оцінок...",
+  "loading_trends": "Завантаження трендів...",
   "login_prompt": "Будь ласка, увійдіть, щоб бачити ваші оцінки.",
+  "login_prompt_trends": "Будь ласка, увійдіть, щоб бачити ваші музичні тренди.",
   "no_ratings": "Немає оцінених {{type}}.",
 
   "track": "Трек",
@@ -194,6 +196,23 @@
   "contact_answer": "Натисніть кнопку нижче, щоб написати нам на пошту, і ми допоможемо вам із будь-яким питанням.",
   "contact_prompt": "Не знайшли відповідь на своє питання?",
   "contact_button": "Написати в підтримку",
+
+  "all_rights_reserved": "Всі права захищено.",
+  "discover_music_universe": "Відкрий свій музичний всесвіт",
+
+  "period_short_term": "4 тижні",
+  "period_medium_term": "6 місяців",
+  "period_long_term": "Увесь час",
+  "my_top_music": "Мій музичний топ",
+  "top_artists": "Топ артисти",
+  "top_tracks": "Топ треки",
+
+  "recommendations": "Ваші рекомендації",
+  "recommendedTracks": "Рекомендовані треки",
+  "recommendedArtists": "Рекомендовані артисти",
+  "getRecommendations": "Отримати рекомендації",
+  "loading-rec": "Завантаження...",
+  "lastUpdate": "Останнє оновлення",
 
   "hero": {
     "badge": "Beta — ваш музичний аналітик",

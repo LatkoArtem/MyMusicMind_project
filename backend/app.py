@@ -59,7 +59,7 @@ CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
-SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control user-read-playback-position"
+SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control user-read-playback-position user-top-read"
 
 # ----------- Routs ------------
 
@@ -99,6 +99,29 @@ def login():
     )
     return redirect(auth_url)
 
+# ---------- Token refresh function ----------
+def refresh_spotify_access_token():
+    refresh_token = session.get("refresh_token")
+    if not refresh_token:
+        return None
+
+    response = requests.post(
+        SPOTIFY_TOKEN_URL,
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    if response.status_code != 200:
+        return None
+
+    tokens = response.json()
+    session["access_token"] = tokens["access_token"]
+    return tokens["access_token"]
+
 @app.route("/callback")
 def callback():
     if not session.get("expecting_callback"):
@@ -131,9 +154,8 @@ def callback():
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
-    print("✅ Token:", tokens["access_token"])
+    session["refresh_token"] = tokens.get("refresh_token")
 
-    # отримання email та збереження user_id у сесію
     profile_response = requests.get(
         SPOTIFY_API_URL,
         headers={"Authorization": f"Bearer {tokens['access_token']}"}
@@ -163,19 +185,32 @@ def profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    spotify_data = {}
     access_token = session.get("access_token")
+    spotify_data = {}
+
     if access_token:
         response = requests.get(
             SPOTIFY_API_URL,
             headers={"Authorization": f"Bearer {access_token}"}
         )
+
+        if response.status_code == 401:  # токен протух
+            access_token = refresh_spotify_access_token()
+            if not access_token:
+                return jsonify({"error": "Need login"}), 401
+            response = requests.get(
+                SPOTIFY_API_URL,
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+
         if response.status_code == 200:
             spotify_data = response.json()
 
     profile_data = {
         "email": user.email,
         "language": user.language,
+        "id": user.id,
+        "spotifyAccessToken": access_token,
         **{k: v for k, v in spotify_data.items() if k not in ["email", "language"]}
     }
 
@@ -1670,6 +1705,138 @@ def get_item(item_type, item_id):
         }
 
     return jsonify(item)
+
+@app.route("/spotify/top-artists")
+def top_artists():
+    headers = get_spotify_headers()
+    if not headers:
+        return jsonify({"error": "Not authenticated with Spotify"}), 401
+
+    time_range = request.args.get("time_range", "short_term")
+    limit = int(request.args.get("limit", 20))
+
+    res = requests.get(
+        "https://api.spotify.com/v1/me/top/artists",
+        headers=headers,
+        params={"time_range": time_range, "limit": limit}
+    )
+    if res.status_code != 200:
+        return jsonify({"error": "Failed to fetch top artists"}), res.status_code
+    return jsonify(res.json())
+
+
+@app.route("/spotify/top-tracks")
+def top_tracks():
+    headers = get_spotify_headers()
+    if not headers:
+        return jsonify({"error": "Not authenticated with Spotify"}), 401
+
+    time_range = request.args.get("time_range", "short_term")
+    limit = int(request.args.get("limit", 50))
+
+    res = requests.get(
+        "https://api.spotify.com/v1/me/top/tracks",
+        headers=headers,
+        params={"time_range": time_range, "limit": limit}
+    )
+    if res.status_code != 200:
+        return jsonify({"error": "Failed to fetch top tracks"}), res.status_code
+    return jsonify(res.json())
+
+# Last.fm recomendations
+recommendations_cache = {}
+
+def fetch_lastfm_similar_tracks(track_name, artist_name, limit=5):
+    try:
+        artist = requests.utils.quote(artist_name)
+        track = requests.utils.quote(track_name)
+        url = f"https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist={artist}&track={track}&api_key={LASTFM_API_KEY}&format=json&limit={limit}"
+        res = requests.get(url)
+        data = res.json()
+        return data.get("similartracks", {}).get("track", [])
+    except:
+        return []
+
+def fetch_lastfm_similar_artists(artist_name, limit=5):
+    try:
+        artist = requests.utils.quote(artist_name)
+        url = f"https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist={artist}&api_key={LASTFM_API_KEY}&format=json&limit={limit}"
+        res = requests.get(url)
+        data = res.json()
+        return data.get("similarartists", {}).get("artist", [])
+    except:
+        return []
+
+def fetch_spotify_item(query, type_, access_token):
+    url = f"https://api.spotify.com/v1/search?q={requests.utils.quote(query)}&type={type_}&limit=1"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    r = requests.get(url, headers=headers)
+    if r.status_code != 200:
+        return None
+    data = r.json()
+    if type_ == "track":
+        return data.get("tracks", {}).get("items", [None])[0]
+    elif type_ == "artist":
+        return data.get("artists", {}).get("items", [None])[0]
+    return None
+
+@app.route("/spotify/recommendations", methods=["POST"])
+def get_recommendations():
+    """
+    Очікує JSON:
+    {
+        "user_id": "...",
+        "topTracks": [...],
+        "topArtists": [...],
+        "spotifyAccessToken": "..."
+    }
+    """
+    body = request.json
+    user_id = body.get("user_id")
+    topTracks = (body.get("topTracks", []) or [])[:25]
+    topArtists = (body.get("topArtists", []) or [])[:10]
+    access_token = body.get("spotifyAccessToken")
+
+    if not all([user_id, access_token]):
+        return jsonify({"error": "user_id та spotifyAccessToken обов'язкові"}), 400
+
+    top_track_ids = set(t["id"] for t in topTracks if t.get("id"))
+    top_artist_ids = set(a["id"] for a in topArtists if a.get("id"))
+
+    similar_tracks = []
+    for t in topTracks:
+        similar_tracks += fetch_lastfm_similar_tracks(t["name"], t["artists"][0]["name"], limit=5)
+
+    similar_artists = []
+    for a in topArtists:
+        similar_artists += fetch_lastfm_similar_artists(a["name"], limit=3)
+
+    spotify_tracks = []
+    seen_track_ids = set()
+    for t in similar_tracks:
+        track_item = fetch_spotify_item(f"{t['name']} {t['artist']['name']}", "track", access_token)
+        if track_item and track_item["id"] not in seen_track_ids and track_item["id"] not in top_track_ids:
+            spotify_tracks.append(track_item)
+            seen_track_ids.add(track_item["id"])
+
+    spotify_artists = []
+    seen_artist_ids = set()
+    for a in similar_artists:
+        artist_item = fetch_spotify_item(a["name"], "artist", access_token)
+        if artist_item and artist_item["id"] not in seen_artist_ids and artist_item["id"] not in top_artist_ids:
+            spotify_artists.append(artist_item)
+            seen_artist_ids.add(artist_item["id"])
+
+    last_updated = datetime.now(timezone.utc).isoformat()
+    result = {
+        "tracks": spotify_tracks,
+        "artists": spotify_artists,
+        "last_updated": last_updated
+    }
+
+    recommendations_cache[user_id] = result
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":

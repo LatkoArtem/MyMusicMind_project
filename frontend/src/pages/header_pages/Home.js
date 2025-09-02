@@ -33,7 +33,7 @@ export default function Home() {
       {
         title: t("quick.rate.title"),
         desc: t("quick.rate.desc"),
-        to: isLoggedIn ? "/TrackAlbumRatings/RateTrackOrAlbum" : "/TrackAlbumRatings",
+        to: "/TrackAlbumRatings/RateTrackOrAlbum",
         requiresAuth: true,
         img: quickRateImg,
       },
@@ -41,7 +41,7 @@ export default function Home() {
         title: t("quick.myRatings.title"),
         desc: t("quick.myRatings.desc"),
         to: "/TrackAlbumRatings",
-        requiresAuth: true,
+        requiresAuth: false, // доступно без логіну
         img: quickRatingsImg,
       },
       {
@@ -54,12 +54,12 @@ export default function Home() {
       {
         title: t("quick.tops.title"),
         desc: t("quick.tops.desc"),
-        to: "/Page5",
-        requiresAuth: false,
+        to: "/MyMusicTrends",
+        requiresAuth: true,
         img: quickTopsImg,
       },
     ],
-    [isLoggedIn, t]
+    [t]
   );
 
   const libraryLinks = useMemo(
@@ -123,8 +123,23 @@ export default function Home() {
     { title: t("feats.cache.title"), text: t("feats.cache.desc"), icon: <FaCloud size={28} /> },
   ];
 
-  const handleNavigation = (to, requiresAuth) => {
-    if (requiresAuth && isLoggedIn === false) {
+  const handleNavigation = (to) => {
+    if (isLoggedIn !== true) {
+      if (to.startsWith("/TrackAlbumRatings/RateTrackOrAlbum")) {
+        navigate("/TrackAlbumRatings");
+        return;
+      }
+
+      if (to === "/TrackAlbumRatings") {
+        navigate(to);
+        return;
+      }
+
+      if (to === "/MyMusicTrends") {
+        navigate(to);
+        return;
+      }
+
       setShowLoginModal(true);
       return;
     }
@@ -144,14 +159,12 @@ export default function Home() {
           <p className="hero-description">{t("hero.description")}</p>
           <div className="hero-buttons">
             <button
-              onClick={() =>
-                handleNavigation(isLoggedIn ? "/TrackAlbumRatings/RateTrackOrAlbum" : "/TrackAlbumRatings", true)
-              }
+              onClick={() => handleNavigation("/TrackAlbumRatings/RateTrackOrAlbum", true)}
               className="btn-primary"
             >
               {t("buttons.startRating")}
             </button>
-            <button onClick={() => handleNavigation("/TrackAlbumRatings", true)} className="btn-secondary">
+            <button onClick={() => handleNavigation("/TrackAlbumRatings", false)} className="btn-secondary">
               {t("buttons.myRatings")}
             </button>
             <button onClick={() => handleNavigation("/Profile", true)} className="btn-secondary">
@@ -168,7 +181,6 @@ export default function Home() {
           {quickLinks.map((item) => (
             <button key={item.title} onClick={() => handleNavigation(item.to, item.requiresAuth)} className="card">
               <img src={item.img} alt={item.title} className="card-image" />
-              <div className="card-icon">{item.icon}</div>
               <div className="card-title">{item.title}</div>
               <div className="card-desc">{item.desc}</div>
             </button>

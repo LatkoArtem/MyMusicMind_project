@@ -2,7 +2,7 @@
   "home": "Home",
   "track_album_ratings": "Track/Album Ratings",
   "about": "About",
-  "more": "More",
+  "my_music_trends": "My Music Trends",
   "profile": "Profile",
   "switch_to_uk": "EN",
   "switch_to_en": "UA",
@@ -47,7 +47,9 @@
   "filter_tracks": "Tracks",
   "filter_albums": "Albums",
   "loading_ratings": "Loading ratings...",
+  "loading_trends": "Loading trends...",
   "login_prompt": "Please log in to see your ratings.",
+  "login_prompt_trends": "Please log in to see your music trends.",
   "no_ratings": "No rated {{type}}.",
 
   "track": "Track",
@@ -194,6 +196,23 @@
   "contact_answer": "Click the button below to email us, and we'll help you with any question.",
   "contact_prompt": "Didn't find the answer to your question?",
   "contact_button": "Contact Support",
+
+  "all_rights_reserved": "All rights reserved.",
+  "discover_music_universe": "Discover your music universe",
+
+  "period_short_term": "4 weeks",
+  "period_medium_term": "6 months",
+  "period_long_term": "All time",
+  "my_top_music": "My music top",
+  "top_artists": "Top artists",
+  "top_tracks": "Top tracks",
+
+  "recommendations": "Your recommendations",
+  "recommendedTracks": "Recommended Tracks",
+  "recommendedArtists": "Recommended Artists",
+  "getRecommendations": "Get Recommendations",
+  "loading-recs": "Loading...",
+  "lastUpdate": "Last update",
 
   "hero": {
     "badge": "Beta — your music analyst",

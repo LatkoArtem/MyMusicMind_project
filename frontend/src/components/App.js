@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-route
 import i18n from "../i18n";
 
 import Header from "./Header";
+import Footer from "./Footer";
 import Home from "../pages/header_pages/Home";
 import TrackAlbumRatings from "../pages/header_pages/TrackAlbumRatings";
 import RateTrackOrAlbum from "../pages/header_pages/RateTrackOrAlbum";
@@ -115,6 +116,8 @@ function App() {
           <Route path="/TrackAlbumRatings/RateTrackOrAlbum/:type/:id" element={<RateTrackOrAlbum />} />
         </Routes>
       </main>
+
+      <Footer />
     </div>
   );
 }

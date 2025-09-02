@@ -1,0 +1,118 @@
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100vh;
+  background: #1e1e1e;
+  color: white;
+  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  overflow-y: auto;
+  z-index: 999;
+  animation: slideIn2 0.3s ease-out;
+}
+
+@keyframes slideIn2 {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: red;
+  transition: 0.3s;
+}
+
+.details-cover {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.episode-description {
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.episode-description::-webkit-scrollbar {
+  width: 6px;
+}
+
+.episode-description::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.episode-description::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.episode-description {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.episode-description:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
+}
+
+.lyrics-section {
+  margin-top: 1.5rem;
+}
+
+.lyrics-section h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.lyrics-text {
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.lyrics-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lyrics-text::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.lyrics-text::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.lyrics-bracket {
+  color: #fff;
+  font-weight: bold;
+}
