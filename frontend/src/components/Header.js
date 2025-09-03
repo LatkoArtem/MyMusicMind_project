@@ -26,7 +26,7 @@ const Header = ({ profile, onLogin, loading }) => {
     i18n.changeLanguage(newLang);
 
     try {
-      await fetch("https://mymusicmind-backend.onrender.com/profile/set-language", {
+      await fetch("https://mymusicmind.onrender.com/profile/set-language", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -50,7 +50,7 @@ const Header = ({ profile, onLogin, loading }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch("https://mymusicmind-backend.onrender.com/logout", {
+      await fetch("https://mymusicmind.onrender.com/logout", {
         method: "POST",
         credentials: "include",
       });

@@ -4,7 +4,7 @@ export const fetchLyrics = async (track, setLyrics, setIsLoadingLyrics) => {
   setIsLoadingLyrics(true);
   setLyrics(null);
   try {
-    const response = await axios.get("https://mymusicmind-backend.onrender.com/get_lyrics", {
+    const response = await axios.get("https://mymusicmind.onrender.com/get_lyrics", {
       params: {
         song: track.name,
         artist: track.artists[0].name,
