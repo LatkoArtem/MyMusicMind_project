@@ -34,7 +34,8 @@ def download_audio(track_name, artist_name, out_dir="audio_temp"):
         'noprogress': True,
         'nooverwrites': True,
         'concurrent_fragment_downloads': 1,
-        'cookiefile': 'youtube_cookies.txt',
+        # 'cookiefile': 'youtube_cookies.txt',   <--- для локальної розробки
+        'cookiefile': '/etc/secrets/youtube_cookies.txt' # <--- це я змінив на це перед деплоєм
     }
 
     try:
