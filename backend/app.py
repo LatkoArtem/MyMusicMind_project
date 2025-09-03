@@ -1847,11 +1847,8 @@ def get_recommendations():
 
     return jsonify(result)
 
-with app.app_context(): # для деплою
-    db.create_all()
-
 # для локальної розробки
-# if __name__ == "__main__":
+if __name__ == "__main__":
 #     with app.app_context():
 #         db.create_all()  # Create Tables if not already present
-#     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8888)), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8888)), debug=False)
