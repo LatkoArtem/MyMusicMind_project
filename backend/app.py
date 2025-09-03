@@ -29,17 +29,24 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-DB_HOST=os.getenv("DB_HOST")
-DB_NAME=os.getenv("DB_NAME")
-DB_USER=os.getenv("DB_USER")
-DB_PASS=os.getenv("DB_PASS")
+# DB_HOST=os.getenv("DB_HOST")
+# DB_NAME=os.getenv("DB_NAME")   <--- для локальної розробки
+# DB_USER=os.getenv("DB_USER")
+# DB_PASS=os.getenv("DB_PASS")
 
 LASTFM_API_KEY=os.getenv("LASTFM_API_KEY")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
+# app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" <--- для локальної розробки
+
+DATABASE_URL = os.getenv("DATABASE_URL") # для деплою
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"): # для деплою
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1) # для деплою
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL # для деплою
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)

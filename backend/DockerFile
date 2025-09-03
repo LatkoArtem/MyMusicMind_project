@@ -1,4 +1,4 @@
-# 1. Образ з Python 3.11
+# 1. Базовий образ з Python 3.11
 FROM python:3.11-slim
 
 # 2. Встановлюємо системні залежності
@@ -9,17 +9,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Робоча директорія
+# 3. Робоча директорія всередині контейнера
 WORKDIR /app
 
-# 4. Копіюємо requirements і ставимо пакети
+# 4. Копіюємо тільки requirements.txt і встановлюємо залежності
 COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# 5. Копіюємо код бекенду
+# 5. Копіюємо весь бекенд-код
 COPY . .
 
-# 6. Вказуємо порт і команду запуску
+# 6. Відкриваємо порт
 EXPOSE 8000
+
+# 7. Запускаємо Flask через gunicorn
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
