@@ -11,7 +11,7 @@ const ArtistAnalysis = ({ similarArtists, isSimilarLoading }) => {
 
   const openModal = async (artistId) => {
     try {
-      const res = await axios.get(`https://mymusicmind.netlify.app/artist_info/id/${artistId}`, {
+      const res = await axios.get(`https://mymusicmind-backend.onrender.com/artist_info/id/${artistId}`, {
         withCredentials: true,
       });
       setArtistInfo(res.data);

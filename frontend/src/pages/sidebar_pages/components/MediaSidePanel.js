@@ -41,7 +41,9 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
 
   const fetchQuota = useCallback(async () => {
     try {
-      const res = await axios.get("https://mymusicmind.netlify.app/get_lyrics_quota", { withCredentials: true });
+      const res = await axios.get("https://mymusicmind-backend.onrender.com/get_lyrics_quota", {
+        withCredentials: true,
+      });
       if (res.data) {
         setRequestsLeft(res.data.requests_left);
         setResetInSec(res.data.reset_seconds);
@@ -54,7 +56,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   const fetchExistingTopics = useCallback(async () => {
     setLoadingTopics(true);
     try {
-      const res = await axios.get(`https://mymusicmind.netlify.app/lyrics_topics/${trackId}`, {
+      const res = await axios.get(`https://mymusicmind-backend.onrender.com/lyrics_topics/${trackId}`, {
         withCredentials: true,
       });
 
@@ -83,7 +85,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
 
     try {
       const res = await axios.post(
-        "https://mymusicmind.netlify.app/analyze_lyrics",
+        "https://mymusicmind-backend.onrender.com/analyze_lyrics",
         { lyrics, track_id: trackId },
         { withCredentials: true }
       );

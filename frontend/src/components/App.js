@@ -28,7 +28,7 @@ function App() {
   const [langReady, setLangReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = "http://127.0.0.1:8888";
+  const API_URL = "https://mymusicmind-backend.onrender.com";
   const navigate = useNavigate();
 
   const fetchProfile = async () => {

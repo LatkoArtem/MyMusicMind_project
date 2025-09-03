@@ -20,7 +20,7 @@ const AlbumsPage = () => {
 
   useEffect(() => {
     axios
-      .get("https://mymusicmind.netlify.app/albums", { withCredentials: true })
+      .get("https://mymusicmind-backend.onrender.com/albums", { withCredentials: true })
       .then((res) => setAlbums(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingAlbums")))
       .finally(() => setIsLoading(false));

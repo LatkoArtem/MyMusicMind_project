@@ -57,7 +57,7 @@ const ProfilePage = ({ profile }) => {
     setMessage("");
 
     try {
-      const response = await fetch("https://mymusicmind.netlify.app/profile/update", {
+      const response = await fetch("https://mymusicmind-backend.onrender.com/profile/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

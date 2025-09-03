@@ -35,7 +35,7 @@ const ItemOverview = ({
   const fetchArtistBio = async (artistName) => {
     try {
       const response = await fetch(
-        `https://mymusicmind.netlify.app/artist_info/name/${encodeURIComponent(artistName)}`,
+        `https://mymusicmind-backend.onrender.com/artist_info/name/${encodeURIComponent(artistName)}`,
         {
           credentials: "include",
         }
@@ -82,7 +82,7 @@ const ItemOverview = ({
       try {
         console.log("⏳ Fetching latest release...");
         const releaseRes = await fetch(
-          `https://mymusicmind.netlify.app/artist_latest_release/${encodeURIComponent(title)}`,
+          `https://mymusicmind-backend.onrender.com/artist_latest_release/${encodeURIComponent(title)}`,
           {
             credentials: "include",
           }
@@ -101,9 +101,12 @@ const ItemOverview = ({
 
       try {
         console.log("⏳ Fetching genre evolution...");
-        const genreRes = await fetch(`https://mymusicmind.netlify.app/genre_evolution/${encodeURIComponent(title)}`, {
-          credentials: "include",
-        });
+        const genreRes = await fetch(
+          `https://mymusicmind-backend.onrender.com/genre_evolution/${encodeURIComponent(title)}`,
+          {
+            credentials: "include",
+          }
+        );
         if (!genreRes.ok) throw new Error("Failed to fetch genre evolution");
         const genreData = await genreRes.json();
         console.log("✅ Genre evolution data:", genreData);
