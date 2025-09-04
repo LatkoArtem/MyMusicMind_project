@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -1719,6 +1719,7 @@ def get_item(item_type, item_id):
     return jsonify(item)
 
 @app.route("/spotify/top-artists")
+@cross_origin(supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 def top_artists():
     headers = get_spotify_headers()
     if not headers:
@@ -1738,6 +1739,7 @@ def top_artists():
 
 
 @app.route("/spotify/top-tracks")
+@cross_origin(supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 def top_tracks():
     headers = get_spotify_headers()
     if not headers:
