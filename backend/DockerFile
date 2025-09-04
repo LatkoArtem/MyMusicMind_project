@@ -13,15 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # 4. Копіюємо тільки requirements.txt і встановлюємо залежності
-COPY requirements.txt .
+COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # 5. Копіюємо весь бекенд-код
 COPY . .
 
-# 6. Відкриваємо порт
-EXPOSE 8000
+# 6. Render автоматично підставить PORT → пробиваємо його
+EXPOSE 10000
 
-# 7. Запускаємо Flask через gunicorn
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
+# 7. Запускаємо Flask через gunicorn (використовуємо $PORT, який Render задає)
+CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --workers 4
