@@ -37,7 +37,7 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 LASTFM_API_KEY=os.getenv("LASTFM_API_KEY")
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me-in-prod')
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" <--- для локальної розробки
 
@@ -59,7 +59,6 @@ app.config['SESSION_SQLALCHEMY'] = db
 # app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  <--- для локальної розробки
 # app.config['SESSION_COOKIE_SECURE'] = False    <--- для локальної розробки
 app.config['SESSION_COOKIE_NAME'] = "mymusicmind_session" # <--- для деплою
-app.config['SESSION_COOKIE_DOMAIN'] = '.onrender.com' # <--- для деплою
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_PERMANENT'] = False

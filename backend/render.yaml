@@ -4,7 +4,7 @@ services:
     env: docker
     plan: free
     region: frankfurt
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     autoDeploy: true
     envVars:
       - key: DATABASE_URL
@@ -19,10 +19,14 @@ services:
         sync: false
       - key: LASTFM_API_KEY
         sync: false
+      - key: GENIUS_API_TOKEN
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
       - key: FLASK_ENV
         value: production
-      - key: PORT
-        value: 10000
 
 databases:
   - name: mymusicmind
