@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: mymusicmind-backend
+    name: mymusicmind
     env: docker
     plan: free
     region: frankfurt
