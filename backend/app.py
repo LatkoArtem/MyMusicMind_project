@@ -7,7 +7,7 @@ import numpy as np
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
-from flask import Flask, request, redirect, session, jsonify, make_response
+from flask import Flask, request, redirect, session, jsonify
 from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
@@ -63,17 +63,11 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
-Session(app)
 
 # CORS config
-CORS(
-    app,
-    supports_credentials=True,
-    origins=["https://mymusicmind.netlify.app"],
-    allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "OPTIONS"],
-    always_send=True
-)
+CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
+
+Session(app)
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -81,26 +75,6 @@ SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
 SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control user-read-playback-position user-top-read"
 
 # ----------- Routs ------------
-
-# ---- Force CORS headers on all responses ----
-@app.after_request
-def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "https://mymusicmind.netlify.app"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    return response
-
-# ---- Handle preflight OPTIONS globally ----
-@app.before_request
-def handle_options():
-    if request.method == "OPTIONS":
-        resp = make_response()
-        resp.headers["Access-Control-Allow-Origin"] = "https://mymusicmind.netlify.app"
-        resp.headers["Access-Control-Allow-Credentials"] = "true"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        return resp
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
@@ -215,6 +189,7 @@ def callback():
     return redirect("https://mymusicmind.netlify.app")
 
 @app.route("/profile")
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def profile():
     user_id = session.get("user_id")
     if not user_id:
@@ -256,6 +231,7 @@ def profile():
     return jsonify(profile_data)
 
 @app.route("/logout", methods=["POST"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def logout():
     session.clear()
     response = jsonify({"message": "Logged out"})
