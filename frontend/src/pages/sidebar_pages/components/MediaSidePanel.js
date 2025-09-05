@@ -41,7 +41,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
 
   const fetchQuota = useCallback(async () => {
     try {
-      const res = await axios.get("https://mymusicmind.onrender.com/get_lyrics_quota", {
+      const res = await axios.get("/api/get_lyrics_quota", {
         withCredentials: true,
       });
       if (res.data) {
@@ -56,7 +56,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
   const fetchExistingTopics = useCallback(async () => {
     setLoadingTopics(true);
     try {
-      const res = await axios.get(`https://mymusicmind.onrender.com/lyrics_topics/${trackId}`, {
+      const res = await axios.get(`/api/lyrics_topics/${trackId}`, {
         withCredentials: true,
       });
 
@@ -84,11 +84,7 @@ const MediaSidePanel = ({ item, type, onClose, lyrics, isLoadingLyrics, albumDet
     setInfoTopics(null);
 
     try {
-      const res = await axios.post(
-        "https://mymusicmind.onrender.com/analyze_lyrics",
-        { lyrics, track_id: trackId },
-        { withCredentials: true }
-      );
+      const res = await axios.post("/api/analyze_lyrics", { lyrics, track_id: trackId }, { withCredentials: true });
       if (res.data.topics) {
         setTopicsById((prev) => ({
           ...prev,

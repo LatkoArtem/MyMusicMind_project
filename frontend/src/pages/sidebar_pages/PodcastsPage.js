@@ -18,7 +18,7 @@ const PodcastsPage = () => {
 
   useEffect(() => {
     axios
-      .get("https://mymusicmind.onrender.com/podcasts", { withCredentials: true })
+      .get("/api/podcasts", { withCredentials: true })
       .then((res) => setPodcasts(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingPodcasts")))
       .finally(() => setIsLoading(false));

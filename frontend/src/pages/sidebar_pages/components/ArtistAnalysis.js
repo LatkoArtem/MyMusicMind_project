@@ -11,7 +11,7 @@ const ArtistAnalysis = ({ similarArtists, isSimilarLoading }) => {
 
   const openModal = async (artistId) => {
     try {
-      const res = await axios.get(`https://mymusicmind.onrender.com/artist_info/id/${artistId}`, {
+      const res = await axios.get(`/api/artist_info/id/${artistId}`, {
         withCredentials: true,
       });
       setArtistInfo(res.data);

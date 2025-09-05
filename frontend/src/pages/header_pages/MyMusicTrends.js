@@ -32,7 +32,7 @@ const MyMusicTrends = () => {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await fetch("https://mymusicmind.onrender.com/profile", { credentials: "include" });
+        const res = await fetch("/api/profile", { credentials: "include" });
         if (res.status === 200) {
           const data = await res.json();
           setProfileData(data);
@@ -58,10 +58,10 @@ const MyMusicTrends = () => {
       setLoading(true);
       try {
         const [artistsRes, tracksRes] = await Promise.all([
-          fetch(`https://mymusicmind.onrender.com/spotify/top-artists?time_range=${period}&limit=20`, {
+          fetch(`/api/spotify/top-artists?time_range=${period}&limit=20`, {
             credentials: "include",
           }),
-          fetch(`https://mymusicmind.onrender.com/spotify/top-tracks?time_range=${period}&limit=50`, {
+          fetch(`/api/spotify/top-tracks?time_range=${period}&limit=50`, {
             credentials: "include",
           }),
         ]);

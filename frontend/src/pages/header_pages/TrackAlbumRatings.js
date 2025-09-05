@@ -16,7 +16,7 @@ export default function TrackAlbumRatings({ profile }) {
   const fetchRatings = async () => {
     try {
       setLoading(true);
-      const res = await fetch("https://mymusicmind.onrender.com/api/ratings", { credentials: "include" });
+      const res = await fetch("/api/ratings", { credentials: "include" });
       if (res.status === 401) {
         setRatingsData([]);
         return;

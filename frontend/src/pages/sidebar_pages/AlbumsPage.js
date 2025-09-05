@@ -20,7 +20,7 @@ const AlbumsPage = () => {
 
   useEffect(() => {
     axios
-      .get("https://mymusicmind.onrender.com/albums", { withCredentials: true })
+      .get("/api/albums", { withCredentials: true })
       .then((res) => setAlbums(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingAlbums")))
       .finally(() => setIsLoading(false));

@@ -23,7 +23,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    fetch("https://mymusicmind.onrender.com/profile", { credentials: "include" })
+    fetch("/api/profile", { credentials: "include" })
       .then((res) => setIsLoggedIn(res.status === 200))
       .catch(() => setIsLoggedIn(false));
   }, []);
