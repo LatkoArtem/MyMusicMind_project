@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -77,7 +77,6 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 # ----------- Routs ------------
 
 @app.route("/profile/update", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_profile():
     data = request.json
     with open(PROFILE_PATH, "w") as f:
@@ -85,7 +84,6 @@ def update_profile():
     return jsonify({"message": "Profile updated successfully"})
 
 @app.route("/profile/set-language", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def set_language():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
@@ -105,7 +103,6 @@ def set_language():
     return jsonify({"success": True, "language": language})
 
 @app.route("/login")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def login():
     session.pop("access_token", None)
     session["expecting_callback"] = True
@@ -139,7 +136,6 @@ def refresh_spotify_access_token():
     return tokens["access_token"]
 
 @app.route("/callback")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def callback():
     if not session.get("expecting_callback"):
         return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
@@ -193,7 +189,6 @@ def callback():
     return redirect("https://mymusicmind.netlify.app")
 
 @app.route("/profile")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def profile():
     user_id = session.get("user_id")
     if not user_id:
@@ -235,7 +230,6 @@ def profile():
     return jsonify(profile_data)
 
 @app.route("/logout", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def logout():
     session.clear()
     response = jsonify({"message": "Logged out"})
@@ -243,7 +237,6 @@ def logout():
     return response, 200
 
 @app.route("/liked-songs")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
@@ -270,7 +263,6 @@ def liked_songs():
     return jsonify(all_tracks)
 
 @app.route("/viewmode", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_viewmode():
     access_token = session.get("access_token")
     if not access_token:
@@ -295,7 +287,6 @@ def update_viewmode():
     return jsonify({"message": "View mode updated"})
 
 @app.route("/playlists")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def playlists():
     access_token = session.get("access_token")
     if not access_token:
@@ -325,7 +316,6 @@ def playlists():
     return jsonify(all_playlists)
 
 @app.route("/playlists/<playlist_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_playlist_details(playlist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -342,7 +332,6 @@ def get_playlist_details(playlist_id):
     return jsonify(response.json())
 
 @app.route("/playlists/<playlist_id>/tracks")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def playlist_tracks(playlist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -366,7 +355,6 @@ def playlist_tracks(playlist_id):
     return jsonify(all_tracks)
 
 @app.route("/albums")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def albums():
     access_token = session.get("access_token")
     if not access_token:
@@ -396,7 +384,6 @@ def albums():
     return jsonify(all_albums)
 
 @app.route("/albums/<album_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_album_details(album_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -412,7 +399,6 @@ def get_album_details(album_id):
     return jsonify(response.json())
 
 @app.route("/albums/<album_id>/tracks")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def album_tracks(album_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -437,7 +423,6 @@ def album_tracks(album_id):
     return jsonify(all_tracks)
 
 @app.route("/artists")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def artists():
     access_token = session.get("access_token")
     if not access_token:
@@ -465,7 +450,6 @@ def artists():
     return jsonify(all_artists)
 
 @app.route("/artists/<artist_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_artist_details(artist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -482,7 +466,6 @@ def get_artist_details(artist_id):
 
 
 @app.route("/artists/<artist_id>/top-tracks")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_artist_top_tracks(artist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -499,7 +482,6 @@ def get_artist_top_tracks(artist_id):
     return jsonify(response.json())
 
 @app.route("/podcasts")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def podcasts():
     access_token = session.get("access_token")
     if not access_token:
@@ -529,7 +511,6 @@ def podcasts():
 
 
 @app.route("/podcasts/<podcast_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_podcast_details(podcast_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -547,7 +528,6 @@ def get_podcast_details(podcast_id):
 
 
 @app.route("/podcasts/<podcast_id>/episodes")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_podcast_episodes(podcast_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -574,7 +554,6 @@ def get_podcast_episodes(podcast_id):
     return jsonify(all_episodes)
 
 @app.route("/my-episodes")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_saved_episodes():
     access_token = session.get("access_token")
     if not access_token:
@@ -665,7 +644,6 @@ def scrape_lyrics_from_url(url):
 
 # Main endpoint
 @app.route("/get_lyrics", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_lyrics():
     song = request.args.get("song")
     artist = request.args.get("artist")
@@ -713,7 +691,6 @@ def get_lyrics():
 
 ############## Analyze lyrics #########################
 @app.route("/get_lyrics_quota")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_lyrics_quota():
     user_id = session.get("user_id")
     if not user_id:
@@ -747,7 +724,6 @@ def get_lyrics_quota():
     })
 
 @app.route("/analyze_lyrics", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def analyze_lyrics():
     data = request.get_json()
     lyrics = data.get("lyrics")
@@ -794,7 +770,6 @@ def analyze_lyrics():
     })
 
 @app.route("/lyrics_topics/<track_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_lyrics_topics_by_track_id(track_id):
     user_id = session.get("user_id")
     if not user_id:
@@ -822,7 +797,6 @@ def get_lyrics_topics_by_track_id(track_id):
 
 ############## Album Analyze ##########################
 @app.route("/analyze_album/<album_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def analyze_album(album_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -1005,7 +979,6 @@ def analyze_album(album_id):
 
 ############## Playlist Analyze ##########################
 @app.route("/analyze_playlist/<playlist_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def analyze_playlist(playlist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -1195,7 +1168,6 @@ def get_spotify_headers():
     }
 
 @app.route("/similar_artists/<artist_name>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_similar_artists_combined(artist_name):
     # 1. Отримуємо схожих артистів з Last.fm
     lastfm_url = "https://ws.audioscrobbler.com/2.0/"
@@ -1260,7 +1232,6 @@ def get_similar_artists_combined(artist_name):
     return jsonify(result)
 
 @app.route("/artist_info/<info_type>/<value>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def artist_info(info_type, value):
     access_token = session.get("access_token")
     if not access_token:
@@ -1342,7 +1313,6 @@ def artist_info(info_type, value):
     })
 
 @app.route("/artist_latest_release/<artist_name>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def artist_latest_release(artist_name):
     headers = get_spotify_headers()
 
@@ -1421,7 +1391,6 @@ def get_all_album_tracks(album_id, headers):
     return tracks
 
 @app.route("/genre_evolution/<artist_name>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def genre_evolution(artist_name):
     headers = get_spotify_headers()
 
@@ -1585,7 +1554,6 @@ def get_current_user_id():
     return user_id
 
 @app.route("/api/search")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def search():
     query = request.args.get("query")
     search_type = request.args.get("type", "track")  # за замовчуванням "track"
@@ -1633,7 +1601,6 @@ def search():
 
 # --- Повертає тільки оцінки поточного користувача ---
 @app.route("/api/ratings", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_ratings():
     user_id = session.get("user_id")
     if not user_id:
@@ -1656,7 +1623,6 @@ def get_ratings():
 
 # --- Додає або оновлює оцінку для користувача ---
 @app.route("/api/ratings", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def add_rating():
     user_id = session.get("user_id")
     if not user_id:
@@ -1702,7 +1668,6 @@ def add_rating():
     return jsonify({"status": "ok", "id": new_rating.id})
 
 @app.route("/api/ratings/<int:rating_id>", methods=["PATCH"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_rating(rating_id):
     user_id = get_current_user_id()
     if not user_id:
@@ -1721,7 +1686,6 @@ def update_rating(rating_id):
     return jsonify({"status": "ok"})
 
 @app.route("/api/<string:item_type>/<string:item_id>")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_item(item_type, item_id):
     token = get_spotify_token()
     if not token:
@@ -1756,7 +1720,6 @@ def get_item(item_type, item_id):
     return jsonify(item)
 
 @app.route("/spotify/top-artists")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def top_artists():
     headers = get_spotify_headers()
     if not headers:
@@ -1776,7 +1739,6 @@ def top_artists():
 
 
 @app.route("/spotify/top-tracks")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def top_tracks():
     headers = get_spotify_headers()
     if not headers:
@@ -1832,7 +1794,6 @@ def fetch_spotify_item(query, type_, access_token):
     return None
 
 @app.route("/spotify/recommendations", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def get_recommendations():
     """
     Очікує JSON:
