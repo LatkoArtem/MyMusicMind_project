@@ -66,7 +66,14 @@ app.config['SESSION_USE_SIGNER'] = True
 Session(app)
 
 # CORS config
-CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
+CORS(
+    app,
+    supports_credentials=True,
+    origins=["https://mymusicmind.netlify.app"],
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS"],
+    always_send=True
+)
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -74,6 +81,14 @@ SPOTIFY_API_URL = "https://api.spotify.com/v1/me"
 SCOPE = "user-read-private user-read-email user-library-read playlist-read-private playlist-read-collaborative user-follow-read user-library-modify user-read-playback-state user-read-currently-playing streaming app-remote-control user-read-playback-position user-top-read"
 
 # ----------- Routs ------------
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "https://mymusicmind.netlify.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
@@ -1719,7 +1734,6 @@ def get_item(item_type, item_id):
     return jsonify(item)
 
 @app.route("/spotify/top-artists")
-@cross_origin(supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 def top_artists():
     headers = get_spotify_headers()
     if not headers:
@@ -1739,7 +1753,6 @@ def top_artists():
 
 
 @app.route("/spotify/top-tracks")
-@cross_origin(supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 def top_tracks():
     headers = get_spotify_headers()
     if not headers:
