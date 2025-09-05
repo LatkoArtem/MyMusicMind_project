@@ -7,7 +7,7 @@ import numpy as np
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
-from flask import Flask, request, redirect, session, jsonify
+from flask import Flask, request, redirect, session, jsonify, make_response
 from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
@@ -82,6 +82,7 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 
 # ----------- Routs ------------
 
+# ---- Force CORS headers on all responses ----
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "https://mymusicmind.netlify.app"
@@ -89,6 +90,17 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
+
+# ---- Handle preflight OPTIONS globally ----
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        resp = make_response()
+        resp.headers["Access-Control-Allow-Origin"] = "https://mymusicmind.netlify.app"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        return resp
 
 @app.route("/profile/update", methods=["POST"])
 def update_profile():
