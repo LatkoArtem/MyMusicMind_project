@@ -1,1 +1,6 @@
+/api/*  https://mymusicmind.onrender.com/:splat  200
+
+/login      https://mymusicmind.onrender.com/login      200
+/callback   https://mymusicmind.onrender.com/callback   200
+
 /*    /index.html   200
