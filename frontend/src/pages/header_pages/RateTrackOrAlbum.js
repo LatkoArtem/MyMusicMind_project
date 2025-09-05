@@ -54,14 +54,14 @@ export default function RateTrackOrAlbum() {
     };
 
     if (existingRating) {
-      await fetch(`/api/ratings/${existingRating.id}`, {
+      await fetch(`https://mymusicmind.onrender.com/api/ratings/${existingRating.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ scores, totalScore: finalScore }),
       });
     } else {
-      await fetch("/api/ratings", {
+      await fetch("https://mymusicmind.onrender.com/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -83,7 +83,7 @@ export default function RateTrackOrAlbum() {
 
     (async () => {
       try {
-        const resp = await fetch(`/api/${type}/${id}`, {
+        const resp = await fetch(`https://mymusicmind.onrender.com/api/${type}/${id}`, {
           credentials: "include",
         });
         if (!resp.ok) return;
@@ -100,7 +100,7 @@ export default function RateTrackOrAlbum() {
 
     (async () => {
       try {
-        const resp = await fetch(`/api/ratings`, {
+        const resp = await fetch(`https://mymusicmind.onrender.com/api/ratings`, {
           credentials: "include",
         });
         if (!resp.ok) return;
@@ -119,7 +119,7 @@ export default function RateTrackOrAlbum() {
   useEffect(() => {
     if (!id && query.trim() !== "") {
       const timeout = setTimeout(async () => {
-        const resp = await fetch(`/api/search?type=${type || "track"}&query=${query}`, {
+        const resp = await fetch(`https://mymusicmind.onrender.com/api/search?type=${type || "track"}&query=${query}`, {
           credentials: "include",
         });
         const data = await resp.json();

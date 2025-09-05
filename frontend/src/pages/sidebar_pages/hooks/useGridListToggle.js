@@ -6,7 +6,7 @@ const useViewMode = () => {
 
   useEffect(() => {
     axios
-      .get("/api/profile", { withCredentials: true })
+      .get("https://mymusicmind.onrender.com/profile", { withCredentials: true })
       .then((res) => {
         const savedMode = res.data.viewMode;
         if (savedMode === "grid" || savedMode === "list") {
@@ -19,7 +19,7 @@ const useViewMode = () => {
   const changeViewMode = (mode) => {
     setViewMode(mode);
     axios
-      .post("/api/viewmode", { viewMode: mode }, { withCredentials: true })
+      .post("https://mymusicmind.onrender.com/viewmode", { viewMode: mode }, { withCredentials: true })
       .catch((err) => console.warn("Could not save view mode", err));
   };
 

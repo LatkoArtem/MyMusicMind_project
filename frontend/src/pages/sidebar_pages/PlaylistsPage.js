@@ -18,7 +18,7 @@ const PlaylistsPage = () => {
 
   useEffect(() => {
     axios
-      .get("/api/playlists", { withCredentials: true })
+      .get("https://mymusicmind.onrender.com/playlists", { withCredentials: true })
       .then((res) => setPlaylists(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingPlaylists")))
       .finally(() => setIsLoading(false));

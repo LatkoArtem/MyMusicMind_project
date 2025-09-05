@@ -19,7 +19,7 @@ const ArtistsPage = () => {
 
   useEffect(() => {
     axios
-      .get("/api/artists", { withCredentials: true })
+      .get("https://mymusicmind.onrender.com/artists", { withCredentials: true })
       .then((res) => setArtists(res.data.items || []))
       .catch((err) => setError(err.response?.data || t("errorFetchingArtists")))
       .finally(() => setIsLoading(false));

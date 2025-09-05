@@ -34,9 +34,12 @@ const ItemOverview = ({
 
   const fetchArtistBio = async (artistName) => {
     try {
-      const response = await fetch(`/api/artist_info/name/${encodeURIComponent(artistName)}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `https://mymusicmind.onrender.com/artist_info/name/${encodeURIComponent(artistName)}`,
+        {
+          credentials: "include",
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch artist info");
       const data = await response.json();
       setArtistInfo(data);
@@ -78,9 +81,12 @@ const ItemOverview = ({
 
       try {
         console.log("⏳ Fetching latest release...");
-        const releaseRes = await fetch(`/api/artist_latest_release/${encodeURIComponent(title)}`, {
-          credentials: "include",
-        });
+        const releaseRes = await fetch(
+          `https://mymusicmind.onrender.com/artist_latest_release/${encodeURIComponent(title)}`,
+          {
+            credentials: "include",
+          }
+        );
         if (!releaseRes.ok) throw new Error("Failed to fetch latest release");
         const releaseData = await releaseRes.json();
         console.log("✅ Latest release data:", releaseData);
@@ -95,7 +101,7 @@ const ItemOverview = ({
 
       try {
         console.log("⏳ Fetching genre evolution...");
-        const genreRes = await fetch(`/api/genre_evolution/${encodeURIComponent(title)}`, {
+        const genreRes = await fetch(`https://mymusicmind.onrender.com/genre_evolution/${encodeURIComponent(title)}`, {
           credentials: "include",
         });
         if (!genreRes.ok) throw new Error("Failed to fetch genre evolution");
