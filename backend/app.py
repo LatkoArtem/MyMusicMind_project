@@ -59,13 +59,13 @@ app.config['SESSION_SQLALCHEMY'] = db
 # app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  <--- для локальної розробки
 # app.config['SESSION_COOKIE_SECURE'] = False    <--- для локальної розробки
 app.config['SESSION_COOKIE_NAME'] = "mymusicmind_session" # <--- для деплою
-app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
 # CORS config
-CORS(app, resources={r"/*": {"origins": "https://mymusicmind.netlify.app"}}, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 
 Session(app)
 
