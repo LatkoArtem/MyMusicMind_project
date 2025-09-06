@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -66,7 +66,7 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
 # CORS config
-CORS(app, supports_credentials=True, resources={r"/*": {"origins": "https://mymusicmind.netlify.app"}})
+CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 
 Session(app)
 
@@ -77,14 +77,14 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 
 # ----------- Routs ------------
 
-@app.route("/profile/update", methods=["POST"])
+@app.route("/profile/update", methods=["POST", "OPTIONS"])
 def update_profile():
     data = request.json
     with open(PROFILE_PATH, "w") as f:
         json.dump(data, f)
     return jsonify({"message": "Profile updated successfully"})
 
-@app.route("/profile/set-language", methods=["POST"])
+@app.route("/profile/set-language", methods=["POST", "OPTIONS"])
 def set_language():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
@@ -103,7 +103,7 @@ def set_language():
 
     return jsonify({"success": True, "language": language})
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "OPTIONS"])
 def login():
     session.pop("access_token", None)
     session["expecting_callback"] = True
@@ -136,7 +136,7 @@ def refresh_spotify_access_token():
     session["access_token"] = tokens["access_token"]
     return tokens["access_token"]
 
-@app.route("/callback")
+@app.route("/callback", methods=["GET", "OPTIONS"])
 def callback():
     if not session.get("expecting_callback"):
         return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
@@ -189,8 +189,7 @@ def callback():
 
     return redirect("https://mymusicmind.netlify.app")
 
-@app.route("/profile")
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/profile", methods=["GET", "OPTIONS"])
 def profile():
     user_id = session.get("user_id")
     if not user_id:
@@ -204,20 +203,12 @@ def profile():
     spotify_data = {}
 
     if access_token:
-        response = requests.get(
-            SPOTIFY_API_URL,
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-
-        if response.status_code == 401:  # токен протух
+        response = requests.get(SPOTIFY_API_URL, headers={"Authorization": f"Bearer {access_token}"})
+        if response.status_code == 401:
             access_token = refresh_spotify_access_token()
             if not access_token:
                 return jsonify({"error": "Need login"}), 401
-            response = requests.get(
-                SPOTIFY_API_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-
+            response = requests.get(SPOTIFY_API_URL, headers={"Authorization": f"Bearer {access_token}"})
         if response.status_code == 200:
             spotify_data = response.json()
 
@@ -231,7 +222,7 @@ def profile():
 
     return jsonify(profile_data)
 
-@app.route("/logout", methods=["POST"])
+@app.route("/logout", methods=["POST", "OPTIONS"])
 def logout():
     session.clear()
     response = jsonify({"message": "Logged out"})
@@ -239,7 +230,6 @@ def logout():
     return response, 200
 
 @app.route("/liked-songs", methods=["GET", "OPTIONS"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
@@ -265,7 +255,7 @@ def liked_songs():
 
     return jsonify(all_tracks)
 
-@app.route("/viewmode", methods=["POST"])
+@app.route("/viewmode", methods=["POST", "OPTIONS"])
 def update_viewmode():
     access_token = session.get("access_token")
     if not access_token:
@@ -1857,6 +1847,6 @@ def get_recommendations():
 # для локальної розробки
 if __name__ == "__main__":
     # with app.app_context():
-    #     db.create_all()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    #     db.create_all()  # Create Tables if not already present
+    # app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8888)), debug=False)
+    pass
