@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -112,8 +112,8 @@ def set_language():
 
     user.language = language
     db.session.commit()
-    return jsonify({"success": True, "language": language})
 
+    return jsonify({"success": True, "language": language})
 
 @app.route("/login", methods=["GET", "OPTIONS"])
 @cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
@@ -134,6 +134,7 @@ def callback():
         return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
+
     error = request.args.get("error")
     if error:
         return redirect("https://mymusicmind.netlify.app?error=access_denied")
@@ -153,6 +154,7 @@ def callback():
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
+
     if response.status_code != 200:
         return redirect("https://mymusicmind.netlify.app?error=token_failed")
 
@@ -168,6 +170,7 @@ def callback():
     if profile_response.status_code == 200:
         profile_data = profile_response.json()
         email = profile_data.get("email")
+
         if email:
             user = User.query.filter_by(email=email).first()
             if not user:
@@ -229,6 +232,7 @@ def profile():
         "spotifyAccessToken": access_token,
         **{k: v for k, v in spotify_data.items() if k not in ["email", "language"]}
     }
+
     return jsonify(profile_data)
 
 
@@ -240,7 +244,6 @@ def logout():
     resp.delete_cookie('mymusicmind_session', domain=".mymusicmind.onrender.com")
     return resp, 200
 
-
 @app.route("/liked-songs", methods=["GET", "OPTIONS"])
 @cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
@@ -251,6 +254,7 @@ def liked_songs():
     url = "https://api.spotify.com/v1/me/tracks"
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0}
+
     all_tracks = {"items": [], "total": 0}
 
     while url:
@@ -261,6 +265,7 @@ def liked_songs():
         data = response.json()
         all_tracks["items"].extend(data.get("items", []))
         all_tracks["total"] = data.get("total", 0)
+
         url = data.get("next")
         params = None
 
