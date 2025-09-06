@@ -59,16 +59,25 @@ app.config['SESSION_SQLALCHEMY'] = db
 # app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  <--- для локальної розробки
 # app.config['SESSION_COOKIE_SECURE'] = False    <--- для локальної розробки
 app.config['SESSION_COOKIE_NAME'] = "mymusicmind_session" # <--- для деплою
-app.config['SESSION_COOKIE_DOMAIN'] = 'mymusicmind.onrender.com' # <--- для деплою
+app.config['SESSION_COOKIE_DOMAIN'] = '.mymusicmind.onrender.com' # <--- для деплою
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
+Session(app)
+
 # CORS config
 CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 
-Session(app)
+# After request for preflight & error responses
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = "https://mymusicmind.netlify.app"
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Headers'] = "Content-Type,Authorization"
+    response.headers['Access-Control-Allow-Methods'] = "GET,POST,OPTIONS"
+    return response
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -78,13 +87,16 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 # ----------- Routs ------------
 
 @app.route("/profile/update", methods=["POST", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_profile():
     data = request.json
     with open(PROFILE_PATH, "w") as f:
         json.dump(data, f)
     return jsonify({"message": "Profile updated successfully"})
 
+
 @app.route("/profile/set-language", methods=["POST", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def set_language():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
@@ -100,10 +112,11 @@ def set_language():
 
     user.language = language
     db.session.commit()
-
     return jsonify({"success": True, "language": language})
 
+
 @app.route("/login", methods=["GET", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def login():
     session.pop("access_token", None)
     session["expecting_callback"] = True
@@ -113,36 +126,14 @@ def login():
     )
     return redirect(auth_url)
 
-# ---------- Token refresh function ----------
-def refresh_spotify_access_token():
-    refresh_token = session.get("refresh_token")
-    if not refresh_token:
-        return None
-
-    response = requests.post(
-        SPOTIFY_TOKEN_URL,
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        },
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
-    )
-    if response.status_code != 200:
-        return None
-
-    tokens = response.json()
-    session["access_token"] = tokens["access_token"]
-    return tokens["access_token"]
 
 @app.route("/callback", methods=["GET", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def callback():
     if not session.get("expecting_callback"):
         return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
-
     error = request.args.get("error")
     if error:
         return redirect("https://mymusicmind.netlify.app?error=access_denied")
@@ -162,7 +153,6 @@ def callback():
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-
     if response.status_code != 200:
         return redirect("https://mymusicmind.netlify.app?error=token_failed")
 
@@ -178,7 +168,6 @@ def callback():
     if profile_response.status_code == 200:
         profile_data = profile_response.json()
         email = profile_data.get("email")
-
         if email:
             user = User.query.filter_by(email=email).first()
             if not user:
@@ -189,13 +178,15 @@ def callback():
 
     return redirect("https://mymusicmind.netlify.app")
 
+
 @app.route("/profile", methods=["GET", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def profile():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    user = db.session.get(User, user_id)
+    user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
@@ -203,12 +194,31 @@ def profile():
     spotify_data = {}
 
     if access_token:
-        response = requests.get(SPOTIFY_API_URL, headers={"Authorization": f"Bearer {access_token}"})
+        response = requests.get(
+            SPOTIFY_API_URL,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
         if response.status_code == 401:
-            access_token = refresh_spotify_access_token()
-            if not access_token:
-                return jsonify({"error": "Need login"}), 401
-            response = requests.get(SPOTIFY_API_URL, headers={"Authorization": f"Bearer {access_token}"})
+            # refresh token
+            refresh_token = session.get("refresh_token")
+            if refresh_token:
+                r = requests.post(
+                    SPOTIFY_TOKEN_URL,
+                    data={
+                        "grant_type": "refresh_token",
+                        "refresh_token": refresh_token,
+                        "client_id": CLIENT_ID,
+                        "client_secret": CLIENT_SECRET
+                    }
+                )
+                if r.status_code == 200:
+                    tokens = r.json()
+                    session["access_token"] = tokens["access_token"]
+                    response = requests.get(
+                        SPOTIFY_API_URL,
+                        headers={"Authorization": f"Bearer {tokens['access_token']}"}
+                    )
+
         if response.status_code == 200:
             spotify_data = response.json()
 
@@ -219,17 +229,20 @@ def profile():
         "spotifyAccessToken": access_token,
         **{k: v for k, v in spotify_data.items() if k not in ["email", "language"]}
     }
-
     return jsonify(profile_data)
 
+
 @app.route("/logout", methods=["POST", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def logout():
     session.clear()
-    response = jsonify({"message": "Logged out"})
-    response.delete_cookie('session')
-    return response, 200
+    resp = jsonify({"message": "Logged out"})
+    resp.delete_cookie('mymusicmind_session', domain=".mymusicmind.onrender.com")
+    return resp, 200
+
 
 @app.route("/liked-songs", methods=["GET", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
@@ -238,7 +251,6 @@ def liked_songs():
     url = "https://api.spotify.com/v1/me/tracks"
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0}
-
     all_tracks = {"items": [], "total": 0}
 
     while url:
@@ -249,7 +261,6 @@ def liked_songs():
         data = response.json()
         all_tracks["items"].extend(data.get("items", []))
         all_tracks["total"] = data.get("total", 0)
-
         url = data.get("next")
         params = None
 
