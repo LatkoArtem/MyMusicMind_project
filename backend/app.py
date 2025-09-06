@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -190,6 +190,7 @@ def callback():
     return redirect("https://mymusicmind.netlify.app")
 
 @app.route("/profile")
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def profile():
     user_id = session.get("user_id")
     if not user_id:
@@ -237,7 +238,8 @@ def logout():
     response.delete_cookie('session')
     return response, 200
 
-@app.route("/liked-songs")
+@app.route("/liked-songs", methods=["GET", "OPTIONS"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
