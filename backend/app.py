@@ -21,7 +21,7 @@ from features_extractor import extract_features_from_full_track
 from calculate_consistency_score import calculate_mean_feature_vector, calculate_consistency_score
 from cluster_tracks import analyze_tracks
 
-PROFILE_PATH = "./flask_session_files/profile_data.json"
+# PROFILE_PATH = "./flask_session_files/profile_data.json" <--- для локальної розробки
 
 load_dotenv()
 
@@ -91,10 +91,29 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 @app.route("/profile/update", methods=["POST", "OPTIONS"])
 @cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_profile():
+    # Перевірка, чи користувач залогінений
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    user = User.query.get(session["user_id"])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     data = request.json
-    with open(PROFILE_PATH, "w") as f:
-        json.dump(data, f)
-    return jsonify({"message": "Profile updated successfully"})
+
+    # Оновлюємо підтримувані поля профілю
+    if "viewMode" in data and data["viewMode"] in ["grid", "list"]:
+        user.view_mode = data["viewMode"]
+    if "language" in data and data["language"] in ["en", "uk"]:
+        user.language = data["language"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Profile updated successfully",
+        "viewMode": user.view_mode,
+        "language": user.language
+    })
 
 
 @app.route("/profile/set-language", methods=["POST", "OPTIONS"])
