@@ -37,4 +37,5 @@ COPY backend/ ./
 COPY --from=frontend-build /app/frontend/build ./frontend_build
 
 # Запуск Gunicorn
-CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 4
+CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60
+
