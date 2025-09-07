@@ -1,0 +1,30 @@
+{
+  "files": {
+    "main.css": "/static/css/main.255cdb31.css",
+    "main.js": "/static/js/main.32d0ffba.js",
+    "static/js/453.d855a71b.chunk.js": "/static/js/453.d855a71b.chunk.js",
+    "static/media/Background.png": "/static/media/Background.d9fd029f029bacd2062a.png",
+    "static/media/MyMusicMindLogo2_crop.png": "/static/media/MyMusicMindLogo2_crop.ca00bb111a12022402b1.png",
+    "static/media/quick_rate_album.png": "/static/media/quick_rate_album.27d4be4224e03ce048e4.png",
+    "static/media/quick_tops.png": "/static/media/quick_tops.c3b78a782e58e3ed498f.png",
+    "static/media/quick_profile.png": "/static/media/quick_profile.f65e566e5c22606aa227.png",
+    "static/media/quick_my_ratings.png": "/static/media/quick_my_ratings.bf1b8c167236cf74a645.png",
+    "static/media/ProfileIcon.png": "/static/media/ProfileIcon.9e4745a27351f6317a61.png",
+    "static/media/podcasts.png": "/static/media/podcasts.e37b1bad18a7d101d416.png",
+    "static/media/albums.png": "/static/media/albums.7cfbb79835b912db4473.png",
+    "static/media/Playlists.png": "/static/media/Playlists.d773d4ab07665d52785c.png",
+    "static/media/liked_songs.png": "/static/media/liked_songs.eddd02daf84fd27042c2.png",
+    "static/media/artists.png": "/static/media/artists.0e55f30e55c1b97964d9.png",
+    "static/media/episodes.png": "/static/media/episodes.8cb835eae5014b54a9d5.png",
+    "static/media/InfoIcon.png": "/static/media/InfoIcon.d26a1b28d33780a08999.png",
+    "static/media/DiscIcon.png": "/static/media/DiscIcon.c07793013255ccbaf35b.png",
+    "index.html": "/index.html",
+    "main.255cdb31.css.map": "/static/css/main.255cdb31.css.map",
+    "main.32d0ffba.js.map": "/static/js/main.32d0ffba.js.map",
+    "453.d855a71b.chunk.js.map": "/static/js/453.d855a71b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.255cdb31.css",
+    "static/js/main.32d0ffba.js"
+  ]
+}

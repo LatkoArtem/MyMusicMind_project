@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from flask import Flask, request, redirect, session, jsonify
-from flask_cors import CORS, cross_origin
+# from flask_cors import CORS, cross_origin
 from flask_session import Session
 from dotenv import load_dotenv
 from routes.groq_client import get_song_themes_from_groq
@@ -36,7 +36,7 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 LASTFM_API_KEY=os.getenv("LASTFM_API_KEY")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="frontend_build/static", template_folder="frontend_build")
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me-in-prod')
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" <--- для локальної розробки
@@ -45,8 +45,7 @@ DATABASE_URL = os.getenv("DATABASE_URL") # для деплою
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"): # для деплою
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1) # для деплою
 
-app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL # для деплою
-
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -62,24 +61,13 @@ app.config['SESSION_PERMANENT'] = False # <--- для деплою
 app.config['SESSION_USE_SIGNER'] = True # <--- для деплою
 app.config['SESSION_COOKIE_NAME'] = "mymusicmind_session" # <--- для деплою
 # app.config['SESSION_COOKIE_DOMAIN'] = 'mymusicmind.onrender.com' # <--- для деплою
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
 app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_USE_SIGNER'] = True
 
 Session(app)
 
 # CORS config
-CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
-
-# After request for preflight & error responses
-@app.after_request
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = "https://mymusicmind.netlify.app"
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    response.headers['Access-Control-Allow-Headers'] = "Content-Type,Authorization"
-    response.headers['Access-Control-Allow-Methods'] = "GET,POST,OPTIONS"
-    return response
+# CORS(app, supports_credentials=True, origins=["https://mymusicmind.netlify.app"])
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -88,10 +76,15 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 
 # ----------- Routs ------------
 
-@app.route("/profile/update", methods=["POST", "OPTIONS"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    if path != "" and os.path.exists(f"frontend_build/{path}"):
+        return app.send_static_file(path)
+    return app.send_static_file("index.html")
+
+@app.route("/profile/update", methods=["POST"])
 def update_profile():
-    # Перевірка, чи користувач залогінений
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -101,7 +94,6 @@ def update_profile():
 
     data = request.json
 
-    # Оновлюємо підтримувані поля профілю
     if "viewMode" in data and data["viewMode"] in ["grid", "list"]:
         user.view_mode = data["viewMode"]
     if "language" in data and data["language"] in ["en", "uk"]:
@@ -115,12 +107,9 @@ def update_profile():
         "language": user.language
     })
 
-
-@app.route("/profile/set-language", methods=["POST", "OPTIONS"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/profile/set-language", methods=["POST"])
 def set_language():
-    user_id = session.get("user_id")
-    if not user_id:
+    if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.json
@@ -128,16 +117,16 @@ def set_language():
     if language not in ["en", "uk"]:
         return jsonify({"error": "Invalid language"}), 400
 
-    user = User.query.get(user_id)
+    user = User.query.get(session["user_id"])
     if not user:
         return jsonify({"error": "User not found"}), 404
 
     user.language = language
     db.session.commit()
+
     return jsonify({"success": True, "language": language})
 
-
-@app.route("/login", methods=["GET"])
+@app.route("/login")
 def login():
     session.pop("access_token", None)
     session["expecting_callback"] = True
@@ -147,22 +136,43 @@ def login():
     )
     return redirect(auth_url)
 
+# ---------- Token refresh function ----------
+def refresh_spotify_access_token():
+    refresh_token = session.get("refresh_token")
+    if not refresh_token:
+        return None
 
-@app.route("/callback", methods=["GET", "OPTIONS"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+    response = requests.post(
+        SPOTIFY_TOKEN_URL,
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    if response.status_code != 200:
+        return None
+
+    tokens = response.json()
+    session["access_token"] = tokens["access_token"]
+    return tokens["access_token"]
+
+@app.route("/callback")
 def callback():
     if not session.get("expecting_callback"):
-        return redirect("https://mymusicmind.netlify.app?error=unexpected_callback")
+        return redirect("https://mymusicmind.onrender.com?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
 
     error = request.args.get("error")
     if error:
-        return redirect("https://mymusicmind.netlify.app?error=access_denied")
+        return redirect("https://mymusicmind.onrender.com?error=access_denied")
 
     code = request.args.get("code")
     if not code:
-        return redirect("https://mymusicmind.netlify.app?error=no_code")
+        return redirect("https://mymusicmind.onrender.com?error=no_code")
 
     response = requests.post(
         SPOTIFY_TOKEN_URL,
@@ -177,7 +187,7 @@ def callback():
     )
 
     if response.status_code != 200:
-        return redirect("https://mymusicmind.netlify.app?error=token_failed")
+        return redirect("https://mymusicmind.onrender.com?error=token_failed")
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
@@ -200,17 +210,15 @@ def callback():
                 db.session.commit()
             session["user_id"] = user.id
 
-    return redirect("https://mymusicmind.netlify.app")
+    return redirect("https://mymusicmind.onrender.com")
 
-
-@app.route("/profile", methods=["GET", "OPTIONS"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/profile")
 def profile():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
@@ -222,26 +230,15 @@ def profile():
             SPOTIFY_API_URL,
             headers={"Authorization": f"Bearer {access_token}"}
         )
-        if response.status_code == 401:
-            # refresh token
-            refresh_token = session.get("refresh_token")
-            if refresh_token:
-                r = requests.post(
-                    SPOTIFY_TOKEN_URL,
-                    data={
-                        "grant_type": "refresh_token",
-                        "refresh_token": refresh_token,
-                        "client_id": CLIENT_ID,
-                        "client_secret": CLIENT_SECRET
-                    }
-                )
-                if r.status_code == 200:
-                    tokens = r.json()
-                    session["access_token"] = tokens["access_token"]
-                    response = requests.get(
-                        SPOTIFY_API_URL,
-                        headers={"Authorization": f"Bearer {tokens['access_token']}"}
-                    )
+
+        if response.status_code == 401:  # токен протух
+            access_token = refresh_spotify_access_token()
+            if not access_token:
+                return jsonify({"error": "Need login"}), 401
+            response = requests.get(
+                SPOTIFY_API_URL,
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
 
         if response.status_code == 200:
             spotify_data = response.json()
@@ -256,44 +253,40 @@ def profile():
 
     return jsonify(profile_data)
 
-
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
-    resp = jsonify({"message": "Logged out"})
-    resp.delete_cookie('mymusicmind_session', domain="mymusicmind.onrender.com")
-    return resp, 200
+    response = jsonify({"message": "Logged out"})
+    response.delete_cookie('session')
+    return response, 200
 
-
-@app.route("/liked-songs", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/liked-songs")
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
-        print("⚠️ No access token in session")
         return jsonify({"error": "Unauthorized"}), 401
-
-    limit = int(request.args.get("limit", 50))
-    offset = int(request.args.get("offset", 0))
 
     url = "https://api.spotify.com/v1/me/tracks"
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"limit": limit, "offset": offset}
+    params = {"limit": 50, "offset": 0}
 
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-    except requests.exceptions.RequestException as e:
-        print("❌ Request to Spotify failed:", e)
-        return jsonify({"error": "Spotify request failed", "details": str(e)}), 502
+    all_tracks = {"items": [], "total": 0}
 
-    if response.status_code != 200:
-        print("❌ Spotify error:", response.status_code, response.text)
-        return jsonify({"error": "Failed to fetch liked songs", "details": response.json()}), response.status_code
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch liked songs", "details": response.json()}), response.status_code
 
-    return jsonify(response.json())
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
+
+    return jsonify(all_tracks)
 
 @app.route("/viewmode", methods=["POST"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def update_viewmode():
     user_id = session.get("user_id")
     if not user_id:
@@ -313,43 +306,7 @@ def update_viewmode():
 
     return jsonify({"message": "View mode updated", "viewMode": viewmode})
 
-# ---------- Helper для Spotify API ----------
-def fetch_spotify_paginated(url, headers, params=None):
-    all_items = {"items": [], "total": 0}
-    while url:
-        try:
-            response = requests.get(url, headers=headers, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-        except requests.exceptions.RequestException as e:
-            return None, str(e)
-
-        # Визначаємо ключ для пагінації
-        if "items" in data:
-            items = data.get("items", [])
-            all_items["items"].extend(items)
-            all_items["total"] = data.get("total", len(all_items["items"]))
-            url = data.get("next")
-        elif "artists" in data:
-            items = data["artists"].get("items", [])
-            all_items["items"].extend(items)
-            all_items["total"] = data["artists"].get("total", len(all_items["items"]))
-            url = data["artists"].get("next")
-        else:
-            # Наприклад для albums/episodes де структура "items" всередині
-            items = [item.get("album") or item.get("show") or item.get("episode") for item in data.get("items", []) if item]
-            all_items["items"].extend([i for i in items if i])
-            all_items["total"] = data.get("total", len(all_items["items"]))
-            url = data.get("next")
-
-        params = None  # для наступних запитів пагінації
-
-    return all_items, None
-
-
-# ---------- Playlists ----------
-@app.route("/playlists", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/playlists")
 def playlists():
     access_token = session.get("access_token")
     if not access_token:
@@ -359,15 +316,26 @@ def playlists():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0}
 
-    all_playlists, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch playlists", "details": err}), 500
+    all_playlists = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch playlists"}), response.status_code
+
+        data = response.json()
+
+        playlists_only = data.get("items", [])
+
+        all_playlists["items"].extend(playlists_only)
+        all_playlists["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
 
     return jsonify(all_playlists)
 
-
-@app.route("/playlists/<playlist_id>", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/playlists/<playlist_id>")
 def get_playlist_details(playlist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -376,16 +344,14 @@ def get_playlist_details(playlist_id):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to fetch playlist details", "details": str(e)}), 500
+    response = requests.get(url, headers=headers)
 
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch playlist details"}), response.status_code
 
-@app.route("/playlists/<playlist_id>/tracks", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+    return jsonify(response.json())
+
+@app.route("/playlists/<playlist_id>/tracks")
 def playlist_tracks(playlist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -395,16 +361,20 @@ def playlist_tracks(playlist_id):
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50}
 
-    all_tracks, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch playlist tracks", "details": err}), 500
+    all_tracks = {"items": [], "total": 0}
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch playlist tracks"}), response.status_code
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+        url = data.get("next")
+        params = None
 
     return jsonify(all_tracks)
 
-
-# ---------- Albums ----------
-@app.route("/albums", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/albums")
 def albums():
     access_token = session.get("access_token")
     if not access_token:
@@ -414,15 +384,26 @@ def albums():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0}
 
-    all_albums, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch albums", "details": err}), 500
+    all_albums = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch albums", "details": response.json()}), response.status_code
+
+        data = response.json()
+
+        albums_only = [item["album"] for item in data.get("items", [])]
+
+        all_albums["items"].extend(albums_only)
+        all_albums["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
 
     return jsonify(all_albums)
 
-
-@app.route("/albums/<album_id>", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/albums/<album_id>")
 def get_album_details(album_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -431,16 +412,13 @@ def get_album_details(album_id):
     url = f"https://api.spotify.com/v1/albums/{album_id}"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to fetch album details", "details": str(e)}), 500
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch album details", "details": response.json()}), response.status_code
 
+    return jsonify(response.json())
 
-@app.route("/albums/<album_id>/tracks", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/albums/<album_id>/tracks")
 def album_tracks(album_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -450,15 +428,21 @@ def album_tracks(album_id):
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50}
 
-    all_tracks, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch album tracks", "details": err}), 500
+    all_tracks = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch album tracks"}), response.status_code
+        data = response.json()
+        all_tracks["items"].extend(data.get("items", []))
+        all_tracks["total"] = data.get("total", 0)
+        url = data.get("next")
+        params = None
 
     return jsonify(all_tracks)
 
-# ---------- Artists ----------
-@app.route("/artists", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/artists")
 def artists():
     access_token = session.get("access_token")
     if not access_token:
@@ -468,15 +452,24 @@ def artists():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"type": "artist", "limit": 50}
 
-    all_artists, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch artists", "details": err}), 500
+    all_artists = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch artists", "details": response.json()}), response.status_code
+
+        data = response.json()
+        artists_data = data.get("artists", {})
+        all_artists["items"].extend(artists_data.get("items", []))
+        all_artists["total"] = artists_data.get("total", 0)
+
+        url = artists_data.get("next")
+        params = None
 
     return jsonify(all_artists)
 
-
-@app.route("/artists/<artist_id>", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/artists/<artist_id>")
 def get_artist_details(artist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -485,16 +478,14 @@ def get_artist_details(artist_id):
     url = f"https://api.spotify.com/v1/artists/{artist_id}"
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to fetch artist details", "details": str(e)}), 500
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch artist details"}), response.status_code
+
+    return jsonify(response.json())
 
 
-@app.route("/artists/<artist_id>/top-tracks", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/artists/<artist_id>/top-tracks")
 def get_artist_top_tracks(artist_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -504,17 +495,13 @@ def get_artist_top_tracks(artist_id):
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"market": "US"}
 
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to fetch artist top tracks", "details": str(e)}), 500
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch artist top tracks"}), response.status_code
 
+    return jsonify(response.json())
 
-# ---------- Podcasts ----------
-@app.route("/podcasts", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/podcasts")
 def podcasts():
     access_token = session.get("access_token")
     if not access_token:
@@ -524,15 +511,26 @@ def podcasts():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0}
 
-    all_podcasts, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch podcasts", "details": err}), 500
+    all_podcasts = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch podcasts", "details": response.json()}), response.status_code
+
+        data = response.json()
+
+        shows_only = [item["show"] for item in data.get("items", [])]
+        all_podcasts["items"].extend(shows_only)
+        all_podcasts["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
 
     return jsonify(all_podcasts)
 
 
-@app.route("/podcasts/<podcast_id>", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/podcasts/<podcast_id>")
 def get_podcast_details(podcast_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -542,16 +540,14 @@ def get_podcast_details(podcast_id):
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"market": "US"}
 
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to fetch podcast details", "details": str(e)}), 500
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch podcast details", "details": response.json()}), response.status_code
+
+    return jsonify(response.json())
 
 
-@app.route("/podcasts/<podcast_id>/episodes", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/podcasts/<podcast_id>/episodes")
 def get_podcast_episodes(podcast_id):
     access_token = session.get("access_token")
     if not access_token:
@@ -561,16 +557,23 @@ def get_podcast_episodes(podcast_id):
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0, "market": "US"}
 
-    all_episodes, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch podcast episodes", "details": err}), 500
+    all_episodes = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch podcast episodes", "details": response.json()}), response.status_code
+
+        data = response.json()
+        all_episodes["items"].extend(data.get("items", []))
+        all_episodes["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
 
     return jsonify(all_episodes)
 
-
-# ---------- Saved Episodes ----------
-@app.route("/my-episodes", methods=["GET"])
-@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
+@app.route("/my-episodes")
 def get_saved_episodes():
     access_token = session.get("access_token")
     if not access_token:
@@ -580,9 +583,25 @@ def get_saved_episodes():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": 50, "offset": 0, "market": "UA"}
 
-    all_episodes, err = fetch_spotify_paginated(url, headers, params)
-    if err:
-        return jsonify({"error": "Failed to fetch saved episodes", "details": err}), 500
+    all_episodes = {"items": [], "total": 0}
+
+    while url:
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            return jsonify({
+                "error": "Failed to fetch saved episodes",
+                "details": response.json()
+            }), response.status_code
+
+        data = response.json()
+
+        episodes_only = [item["episode"] for item in data.get("items", []) if "episode" in item]
+
+        all_episodes["items"].extend(episodes_only)
+        all_episodes["total"] = data.get("total", 0)
+
+        url = data.get("next")
+        params = None
 
     return jsonify(all_episodes)
 
