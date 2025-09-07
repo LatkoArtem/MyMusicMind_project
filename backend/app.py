@@ -61,7 +61,7 @@ app.config['SESSION_SQLALCHEMY'] = db
 app.config['SESSION_PERMANENT'] = False # <--- для деплою
 app.config['SESSION_USE_SIGNER'] = True # <--- для деплою
 app.config['SESSION_COOKIE_NAME'] = "mymusicmind_session" # <--- для деплою
-app.config['SESSION_COOKIE_DOMAIN'] = '.mymusicmind.onrender.com' # <--- для деплою
+app.config['SESSION_COOKIE_DOMAIN'] = 'mymusicmind.onrender.com' # <--- для деплою
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_PERMANENT'] = False
@@ -261,14 +261,16 @@ def profile():
 def logout():
     session.clear()
     resp = jsonify({"message": "Logged out"})
-    resp.delete_cookie('mymusicmind_session', domain=".mymusicmind.onrender.com")
+    resp.delete_cookie('mymusicmind_session', domain="mymusicmind.onrender.com")
     return resp, 200
 
 
 @app.route("/liked-songs", methods=["GET"])
+@cross_origin(origin="https://mymusicmind.netlify.app", supports_credentials=True)
 def liked_songs():
     access_token = session.get("access_token")
     if not access_token:
+        print("⚠️ No access token in session")
         return jsonify({"error": "Unauthorized"}), 401
 
     limit = int(request.args.get("limit", 50))
@@ -278,8 +280,14 @@ def liked_songs():
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"limit": limit, "offset": offset}
 
-    response = requests.get(url, headers=headers, params=params)
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+    except requests.exceptions.RequestException as e:
+        print("❌ Request to Spotify failed:", e)
+        return jsonify({"error": "Spotify request failed", "details": str(e)}), 502
+
     if response.status_code != 200:
+        print("❌ Spotify error:", response.status_code, response.text)
         return jsonify({"error": "Failed to fetch liked songs", "details": response.json()}), response.status_code
 
     return jsonify(response.json())
