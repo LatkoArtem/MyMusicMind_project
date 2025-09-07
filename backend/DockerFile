@@ -1,5 +1,21 @@
+# ==== 1. Stage: build frontend ====
+FROM node:18 AS frontend-build
+
+WORKDIR /app/frontend
+
+# Копіюємо лише package.json щоб кешувався npm install
+COPY frontend/package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Копіюємо решту фронтенд-коду і білдимо
+COPY frontend/ ./
+RUN npm run build
+
+
+# ==== 2. Stage: backend + frontend ====
 FROM python:3.11-slim
 
+# Системні залежності
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
@@ -9,12 +25,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt ./
+# Копіюємо requirements і ставимо залежності
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Копіюємо бекенд
+COPY backend/ ./
 
+# Копіюємо зібраний фронтенд у backend/frontend_build
+COPY --from=frontend-build /app/frontend/build ./frontend_build
+
+# Порт (Render сам підставляє $PORT)
 EXPOSE 10000
 
-CMD exec sh -c 'gunicorn app:app --bind 0.0.0.0:${PORT:-8888} --workers 4'
+# Запуск
+CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --workers 4
