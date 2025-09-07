@@ -36,7 +36,7 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 LASTFM_API_KEY=os.getenv("LASTFM_API_KEY")
 
-app = Flask(__name__, static_folder="frontend_build/static", template_folder="frontend_build")
+app = Flask(__name__, static_folder="frontend_build", template_folder="frontend_build")
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me-in-prod')
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" <--- для локальної розробки
@@ -79,7 +79,9 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-read-priva
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_frontend(path):
-    if path != "" and os.path.exists(f"frontend_build/{path}"):
+    if path.startswith("api/"):
+        return jsonify({"error": "API endpoint not found"}), 404
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return app.send_static_file(path)
     return app.send_static_file("index.html")
 
