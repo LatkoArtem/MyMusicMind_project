@@ -3,11 +3,11 @@ FROM node:18 AS frontend-build
 
 WORKDIR /app/frontend
 
-# Копіюємо лише package.json щоб кешувався npm install
+# Копіюємо package.json і ставимо залежності
 COPY frontend/package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Копіюємо решту фронтенд-коду і білдимо
+# Копіюємо весь фронтенд і білдимо
 COPY frontend/ ./
 RUN npm run build
 
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Копіюємо requirements і ставимо залежності
+# Встановлюємо Python-залежності
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
@@ -33,11 +33,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Копіюємо бекенд
 COPY backend/ ./
 
-# Копіюємо зібраний фронтенд у backend/frontend_build
+# Копіюємо фронтенд-білд
 COPY --from=frontend-build /app/frontend/build ./frontend_build
 
-# Порт (Render сам підставляє $PORT)
-EXPOSE 10000
-
-# Запуск
-CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --workers 4
+# Запуск Gunicorn
+CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 4
