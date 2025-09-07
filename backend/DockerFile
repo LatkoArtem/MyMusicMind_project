@@ -1,7 +1,5 @@
-# 1. Базовий образ з Python 3.11
 FROM python:3.11-slim
 
-# 2. Встановлюємо системні залежності
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
@@ -9,19 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Робоча директорія всередині контейнера
 WORKDIR /app
 
-# 4. Копіюємо тільки requirements.txt і встановлюємо залежності
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# 5. Копіюємо весь бекенд-код
 COPY . .
 
-# 6. Render автоматично підставить PORT → пробиваємо його
 EXPOSE 10000
 
-# 7. Запускаємо Flask через gunicorn (використовуємо $PORT, який Render задає)
-CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --workers 4
+CMD exec sh -c 'gunicorn app:app --bind 0.0.0.0:${PORT:-8888} --workers 4'
