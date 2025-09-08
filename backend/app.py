@@ -637,26 +637,32 @@ def search_genius(song_title, artist_name):
     return None
 
 # Scrape lyrics
+HEADERS_PAGE = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/120.0.0.0 Safari/537.36"
+}
+
 def scrape_lyrics_from_url(url):
-    logging.info(f"Scraping Genius URL: {url}")
+    print(f"[INFO] Scraping Genius URL: {url}")
     try:
-        page = requests.get(url)
+        page = requests.get(url, headers=HEADERS_PAGE)
     except Exception as e:
-        logging.error(f"Failed to fetch Genius page: {e}")
+        print(f"[ERROR] Exception while fetching page: {e}")
         return None
 
     if page.status_code != 200:
-        logging.error(f"Failed to fetch page, status: {page.status_code}")
+        print(f"[ERROR] Failed to fetch page, status: {page.status_code}")
         return None
 
     soup = BeautifulSoup(page.text, "html.parser")
 
     lyrics_blocks = soup.select("div[data-lyrics-container='true']")
     if not lyrics_blocks:
-        logging.warning("No 'data-lyrics-container' blocks found, trying 'div.lyrics'")
+        print("[WARN] No 'data-lyrics-container' blocks found, trying 'div.lyrics'")
         lyrics_blocks = soup.select("div.lyrics")
     if not lyrics_blocks:
-        logging.error("No lyrics blocks found on page")
+        print("[ERROR] No lyrics blocks found on page")
         return None
 
     lyrics_lines = []
@@ -679,10 +685,10 @@ def scrape_lyrics_from_url(url):
     cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
 
     if not cleaned_lyrics:
-        logging.warning("Lyrics extracted but empty after cleaning")
+        print("[WARN] Lyrics extracted but empty after cleaning")
         return None
 
-    logging.info(f"Lyrics successfully scraped, {len(cleaned_lyrics)} characters")
+    print(f"[INFO] Lyrics successfully scraped, {len(cleaned_lyrics)} characters")
     return cleaned_lyrics
 
 # Main endpoint
