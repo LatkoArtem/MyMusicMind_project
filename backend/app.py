@@ -1412,21 +1412,21 @@ def get_all_album_tracks(album_id, headers):
 
     return tracks
 
-allowed_genres = {
-    "Rap", "Hip-Hop", "R&B", "Pop", "Rock", "Country", "Jazz", "Blues",
-    "Electronic", "Dance", "Soul", "Funk", "Reggae", "Metal", "Punk",
-    "Classical", "Indie", "Alternative", "Latin", "Disco", "Gospel",
-    "Trap", "House", "Techno", "Dubstep", "Ambient", "K-Pop", "Grime",
-    "Ska", "Bluegrass", "Electro", "Drum & Bass", "Chillout", "Synthpop",
-    "Garage", "Trap Soul", "Lo-fi Hip-Hop", "Electro Swing", "Future Bass",
-    "Vaporwave", "Tropical House", "Post-Rock", "Shoegaze", "Dream Pop",
-    "Neo-Soul", "Emo", "Hard Rock", "Progressive Rock", "Folk", "Acoustic",
-    "Experimental", "Chillwave", "Trap Rap", "Christian", "Musical Theatre"
-}
-
 @app.route("/genre_evolution/<artist_name>")
 def genre_evolution(artist_name):
     headers = get_spotify_headers()
+
+    allowed_genres = {
+        "Rap", "Hip-Hop", "R&B", "Pop", "Rock", "Country", "Jazz", "Blues",
+        "Electronic", "Dance", "Soul", "Funk", "Reggae", "Metal", "Punk",
+        "Classical", "Indie", "Alternative", "Latin", "Disco", "Gospel",
+        "Trap", "House", "Techno", "Dubstep", "Ambient", "K-Pop", "Grime",
+        "Ska", "Bluegrass", "Electro", "Drum & Bass", "Chillout", "Synthpop",
+        "Garage", "Trap Soul", "Lo-fi Hip-Hop", "Electro Swing", "Future Bass",
+        "Vaporwave", "Tropical House", "Post-Rock", "Shoegaze", "Dream Pop",
+        "Neo-Soul", "Emo", "Hard Rock", "Progressive Rock", "Folk", "Acoustic",
+        "Experimental", "Chillwave", "Trap Rap", "Christian", "Musical Theatre"
+    }
 
     search_resp = requests.get(
         "https://api.spotify.com/v1/search",
@@ -1434,18 +1434,30 @@ def genre_evolution(artist_name):
         params={"q": artist_name, "type": "artist", "limit": 5}
     )
     search_data = search_resp.json()
+
     if "artists" not in search_data or not search_data["artists"]["items"]:
         return jsonify({"error": "Artist not found"}), 404
 
     artist_name_lower = artist_name.lower()
-    best_artist = next(
-        (a for a in search_data["artists"]["items"] if a["name"].lower() == artist_name_lower),
-        search_data["artists"]["items"][0]
-    )
+    best_artist = None
+    for artist in search_data["artists"]["items"]:
+        if artist["name"].lower() == artist_name_lower:
+            best_artist = artist
+            break
+
+    if best_artist is None:
+        best_artist = search_data["artists"]["items"][0]
+
     artist_id = best_artist["id"]
+    print(f"Using artist: {best_artist['name']} with ID: {artist_id}")
 
     albums_url = f"https://api.spotify.com/v1/artists/{artist_id}/albums"
-    albums_params = {"include_groups": "album,single", "limit": 50, "market": "US"}
+    albums_params = {
+        "include_groups": "album,single",
+        "limit": 50,
+        "market": "US",
+    }
+
     all_albums = []
     while albums_url:
         resp = requests.get(albums_url, headers=headers, params=albums_params)
@@ -1494,37 +1506,38 @@ def genre_evolution(artist_name):
         album_tracks_for_output = []
 
         for track in tracks:
-            track_name = track["name"].strip()
-            if track_name.lower() in seen_tracks_per_year[year]:
+            track_name = track["name"].strip().lower()
+            if track_name in seen_tracks_per_year[year]:
                 continue
-            seen_tracks_per_year[year].add(track_name.lower())
+            seen_tracks_per_year[year].add(track_name)
+
             tracks_count_by_year[year] += 1
-            album_tracks_for_output.append(track_name)
+            album_tracks_for_output.append(track["name"])
 
-            # --- Last.fm tags по треку ---
-            lastfm_url = "http://ws.audioscrobbler.com/2.0/"
-            params = {
-                "method": "track.getInfo",
-                "api_key": LASTFM_API_KEY,
-                "artist": artist_name,
-                "track": track_name,
-                "format": "json"
-            }
+            # Пошук у Genius
+            genius_url = search_genius(track["name"], artist_name)
+            if not genius_url:
+                continue
+
+
+
+
+
             try:
-                resp = requests.get(lastfm_url, params=params)
-                data = resp.json()
-                tags = []
-                if "track" in data and "toptags" in data["track"] and "tag" in data["track"]["toptags"]:
-                    for tag in data["track"]["toptags"]["tag"]:
-                        tag_name = tag["name"].title()
-                        if tag_name in allowed_genres:
-                            tags.append(tag_name)
+                page = requests.get(genius_url)
+                soup = BeautifulSoup(page.text, "html.parser")
+                all_tags = [a.get_text(strip=True) for a in soup.select("a[href*='/tags/']")]
+                filtered_tags = [tag for tag in all_tags if tag in allowed_genres]
 
-                for tag in tags:
+                for tag in filtered_tags:
+
+
+
+
                     genre_by_year[str(year)][tag] += 1
 
             except Exception as e:
-                print(f"❌ Error fetching Last.fm for track '{track_name}': {e}")
+                print(f"❌ Error parsing Genius page for track '{track['name']}': {e}")
                 continue
 
         detailed_output.append({
@@ -1533,6 +1546,14 @@ def genre_evolution(artist_name):
             "year": year,
             "tracks": album_tracks_for_output
         })
+
+    # Виводимо в консоль для контролю
+    print("\n=== Albums and tracks used in analysis ===")
+    for item in detailed_output:
+        print(f"{item['release_date']} — {item['album_name']} ({len(item['tracks'])} tracks):")
+        for t in item['tracks']:
+            print(f"   - {t}")
+    print("=== End of list ===\n")
 
     result = {}
     all_years = set(tracks_count_by_year.keys()) | set(int(y) for y in genre_by_year.keys())
