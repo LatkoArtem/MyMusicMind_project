@@ -613,102 +613,135 @@ HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
 
 # Search for songs on Genius
 def search_genius(song_title, artist_name):
-    base_url = "https://api.genius.com/search"
-    query = f"{song_title} {artist_name}"
-    response = requests.get(base_url, params={"q": query}, headers=HEADERS_GENIUS)
+    try:
+        base_url = "https://api.genius.com/search"
+        query = f"{song_title} {artist_name}"
+        print(f"🔍 Searching Genius for: {query}")
+        response = requests.get(base_url, params={"q": query}, headers=HEADERS_GENIUS)
+        print(f"➡️ Genius API status: {response.status_code}")
 
-    if response.status_code != 200:
+        if response.status_code != 200:
+            print(f"❌ Genius API error: {response.text[:500]}")
+            return None
+
+        data = response.json()
+        hits = data.get("response", {}).get("hits", [])
+        for hit in hits:
+            if artist_name.lower() in hit["result"]["primary_artist"]["name"].lower():
+                print(f"✅ Found Genius URL: {hit['result']['url']}")
+                return hit["result"]["url"]
+        print("⚠️ No matching artist found in Genius hits")
         return None
-
-    data = response.json()
-    hits = data["response"]["hits"]
-    for hit in hits:
-        if artist_name.lower() in hit["result"]["primary_artist"]["name"].lower():
-            return hit["result"]["url"]
-    return None
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in search_genius: {e}")
+        traceback.print_exc()
+        return None
 
 # Scrape lyrics
 def scrape_lyrics_from_url(url):
-    page = requests.get(url)
-    if page.status_code != 200:
+    try:
+        print(f"🔗 Scraping lyrics from: {url}")
+        page = requests.get(url)
+        print(f"➡️ Page status: {page.status_code}")
+        if page.status_code != 200:
+            print(f"❌ Failed to fetch page")
+            return None
+
+        soup = BeautifulSoup(page.text, "html.parser")
+        lyrics_blocks = soup.select("div[data-lyrics-container='true']")
+        lyrics_lines = []
+
+        for block in lyrics_blocks:
+            for excluded in block.select('[data-exclude-from-selection="true"]'):
+                excluded.decompose()
+
+            for element in block.children:
+                if getattr(element, "name", None) == "p":
+                    text = element.get_text(separator="\n").strip()
+                    if text:
+                        lyrics_lines.append(text)
+                elif isinstance(element, str):
+                    text = element.strip()
+                    if text:
+                        lyrics_lines.append(text)
+                else:
+                    text = element.get_text(separator="\n").strip()
+                    if text:
+                        lyrics_lines.append(text)
+
+        full_text = "\n".join(lyrics_lines)
+        full_text = re.sub(r"\[\s*([^]]*?\n)*?[^]]*?\s*\]", "", full_text, flags=re.MULTILINE)
+        cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
+
+        print(f"✅ Lyrics length: {len(cleaned_lyrics) if cleaned_lyrics else 0}")
+        return cleaned_lyrics if cleaned_lyrics else None
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in scrape_lyrics_from_url: {e}")
+        traceback.print_exc()
         return None
-
-    soup = BeautifulSoup(page.text, "html.parser")
-    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
-
-    lyrics_lines = []
-
-    for block in lyrics_blocks:
-        for excluded in block.select('[data-exclude-from-selection="true"]'):
-            excluded.decompose()
-
-        for element in block.children:
-            if getattr(element, "name", None) == "p":
-                text = element.get_text(separator="\n").strip()
-                if text:
-                    lyrics_lines.append(text)
-            elif isinstance(element, str):
-                text = element.strip()
-                if text:
-                    lyrics_lines.append(text)
-            else:
-                text = element.get_text(separator="\n").strip()
-                if text:
-                    lyrics_lines.append(text)
-
-    full_text = "\n".join(lyrics_lines)
-
-    full_text = re.sub(r"\[\s*([^]]*?\n)*?[^]]*?\s*\]", "", full_text, flags=re.MULTILINE)
-
-    cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
-
-    return cleaned_lyrics if cleaned_lyrics else None
 
 # Main endpoint
 @app.route("/get_lyrics", methods=["GET"])
 def get_lyrics():
-    song = request.args.get("song")
-    artist = request.args.get("artist")
-    track_id = request.args.get("track_id")
+    try:
+        song = request.args.get("song")
+        artist = request.args.get("artist")
+        track_id = request.args.get("track_id")
 
-    if not song or not artist:
-        return jsonify({"error": "Missing song or artist"}), 400
+        print(f"🎵 Request for song: {song}, artist: {artist}, track_id: {track_id}")
 
-    search_string = f"{song} {artist}"
-    lyrics_hash = hash_lyrics(search_string)
+        if not song or not artist:
+            print("❌ Missing song or artist")
+            return jsonify({"error": "Missing song or artist"}), 400
 
-    # Спроба взяти lyrics з кешу
-    cached = get_cached_lyrics(lyrics_hash)
-    if cached:
-        # Зберігаємо до track_id-кешу, якщо track_id є
+        search_string = f"{song} {artist}"
+        lyrics_hash = hash_lyrics(search_string)
+        print(f"➡️ Lyrics hash: {lyrics_hash}")
+
+        # Спроба взяти lyrics з кешу
+        cached = get_cached_lyrics(lyrics_hash)
+        print(f"➡️ Cached lyrics found: {bool(cached)}")
+        if cached:
+            if track_id:
+                set_cached_lyrics_by_track_id(track_id, cached)
+            return jsonify({
+                "song": song,
+                "artist": artist,
+                "lyrics": cached,
+                "source": "cache"
+            })
+
+        genius_url = search_genius(song, artist)
+        if not genius_url:
+            print("❌ Song not found on Genius")
+            return jsonify({"error": "Song not found on Genius"}), 404
+
+        lyrics = scrape_lyrics_from_url(genius_url)
+        if not lyrics:
+            print("❌ Lyrics not found or could not be parsed")
+            return jsonify({"error": "Lyrics not found or could not be parsed"}), 500
+
+        # Зберігаємо в кеш
+        set_cached_lyrics(lyrics_hash, lyrics)
         if track_id:
-            set_cached_lyrics_by_track_id(track_id, cached)
+            set_cached_lyrics_by_track_id(track_id, lyrics)
+
+        print(f"✅ Returning lyrics for {song} by {artist}")
         return jsonify({
             "song": song,
             "artist": artist,
-            "lyrics": cached,
-            "source": "cache"
+            "lyrics": lyrics,
+            "source_url": genius_url
         })
 
-    genius_url = search_genius(song, artist)
-    if not genius_url:
-        return jsonify({"error": "Song not found on Genius"}), 404
-
-    lyrics = scrape_lyrics_from_url(genius_url)
-    if not lyrics:
-        return jsonify({"error": "Lyrics not found or could not be parsed"}), 500
-
-    # Зберігаємо в кеш
-    set_cached_lyrics(lyrics_hash, lyrics)
-    if track_id:
-        set_cached_lyrics_by_track_id(track_id, lyrics)
-
-    return jsonify({
-        "song": song,
-        "artist": artist,
-        "lyrics": lyrics,
-        "source_url": genius_url
-    })
+    except Exception as e:
+        import traceback
+        print(f"❌ Unexpected error in /get_lyrics: {e}")
+        traceback.print_exc()
+        return jsonify({"error": "Internal server error"}), 500
 ############## GENIUS LYRICS PARSING END ##############
 
 ############## Analyze lyrics #########################
