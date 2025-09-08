@@ -634,38 +634,35 @@ def scrape_lyrics_from_url(url):
         return None
 
     soup = BeautifulSoup(page.text, "html.parser")
+    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
 
-    script_tag = soup.find("script", string=re.compile("window.__PRELOADED_STATE__"))
-    if not script_tag or not script_tag.string:
-        return None
+    lyrics_lines = []
 
-    match = re.search(r'window\.__PRELOADED_STATE__\s*=\s*({.*});', script_tag.string)
-    if not match:
-        return None
+    for block in lyrics_blocks:
+        for excluded in block.select('[data-exclude-from-selection="true"]'):
+            excluded.decompose()
 
-    try:
-        data = json.loads(match.group(1))
+        for element in block.children:
+            if getattr(element, "name", None) == "p":
+                text = element.get_text(separator="\n").strip()
+                if text:
+                    lyrics_lines.append(text)
+            elif isinstance(element, str):
+                text = element.strip()
+                if text:
+                    lyrics_lines.append(text)
+            else:
+                text = element.get_text(separator="\n").strip()
+                if text:
+                    lyrics_lines.append(text)
 
-        html_lyrics = (
-            data.get("songPage", {})
-                .get("lyricsData", {})
-                .get("body", {})
-                .get("html")
-        )
-        if not html_lyrics:
-            return None
+    full_text = "\n".join(lyrics_lines)
 
-        text = BeautifulSoup(html_lyrics, "html.parser").get_text("\n").strip()
+    full_text = re.sub(r"\[\s*([^]]*?\n)*?[^]]*?\s*\]", "", full_text, flags=re.MULTILINE)
 
-        text = re.sub(r"\[\s*([^]]*?\n)*?[^]]*?\s*\]", "", text, flags=re.MULTILINE)
+    cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
 
-        text = re.sub(r"\n{2,}", "\n", text).strip()
-
-        return text if text else None
-
-    except Exception as e:
-        print(f"❌ Error parsing lyrics from Genius JSON: {e}")
-        return None
+    return cleaned_lyrics if cleaned_lyrics else None
 
 # Main endpoint
 @app.route("/get_lyrics", methods=["GET"])
