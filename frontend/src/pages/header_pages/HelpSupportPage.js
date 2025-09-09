@@ -77,7 +77,7 @@ export default function HelpSupportPage() {
 
       <div className="help-contact">
         <p>{t("contact_prompt", "Не знайшли відповідь на своє питання?")}</p>
-        <a href="mailto:support@mymusicmind.netlify.app" className="contact-btn">
+        <a href="mailto:support@mymusicmind-9gke.onrender.com" className="contact-btn">
           {t("contact_button", "Написати в підтримку")}
         </a>
       </div>

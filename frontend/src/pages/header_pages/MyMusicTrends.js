@@ -58,10 +58,10 @@ const MyMusicTrends = () => {
       setLoading(true);
       try {
         const [artistsRes, tracksRes] = await Promise.all([
-          fetch(`https://mymusicmind.onrender.com/spotify/top-artists?time_range=${period}&limit=20`, {
+          fetch(`https://mymusicmind-9gke.onrender.com/spotify/top-artists?time_range=${period}&limit=20`, {
             credentials: "include",
           }),
-          fetch(`https://mymusicmind.onrender.com/spotify/top-tracks?time_range=${period}&limit=50`, {
+          fetch(`https://mymusicmind-9gke.onrender.com/spotify/top-tracks?time_range=${period}&limit=50`, {
             credentials: "include",
           }),
         ]);

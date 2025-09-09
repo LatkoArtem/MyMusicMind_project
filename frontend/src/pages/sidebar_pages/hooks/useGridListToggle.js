@@ -19,7 +19,7 @@ const useViewMode = () => {
   const changeViewMode = (mode) => {
     setViewMode(mode);
     axios
-      .post("https://mymusicmind.onrender.com/viewmode", { viewMode: mode }, { withCredentials: true })
+      .post("https://mymusicmind-9gke.onrender.com/viewmode", { viewMode: mode }, { withCredentials: true })
       .catch((err) => console.warn("Could not save view mode", err));
   };
 

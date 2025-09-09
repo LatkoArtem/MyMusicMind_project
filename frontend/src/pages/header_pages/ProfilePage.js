@@ -57,7 +57,7 @@ const ProfilePage = ({ profile }) => {
     setMessage("");
 
     try {
-      const response = await fetch("https://mymusicmind.onrender.com/profile/update", {
+      const response = await fetch("https://mymusicmind-9gke.onrender.com/profile/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

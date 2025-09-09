@@ -28,7 +28,7 @@ function App() {
   const [langReady, setLangReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = "https://mymusicmind.onrender.com";
+  const API_URL = "https://mymusicmind-9gke.onrender.com";
   const navigate = useNavigate();
 
   const fetchProfile = async () => {

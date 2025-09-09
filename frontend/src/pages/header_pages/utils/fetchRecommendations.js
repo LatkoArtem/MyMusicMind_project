@@ -3,7 +3,7 @@ export const fetchRecommendations = async (userId, topTracks, topArtists, spotif
     const limitedTopTracks = (topTracks || []).slice(0, 25).filter((t) => t && t.id);
     const limitedTopArtists = (topArtists || []).slice(0, 10).filter((a) => a && a.id);
 
-    const res = await fetch("https://mymusicmind.onrender.com/spotify/recommendations", {
+    const res = await fetch("https://mymusicmind-9gke.onrender.com/spotify/recommendations", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

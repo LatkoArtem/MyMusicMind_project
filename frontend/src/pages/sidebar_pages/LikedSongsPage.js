@@ -21,7 +21,7 @@ const LikedSongsPage = () => {
 
   useEffect(() => {
     axios
-      .get("https://mymusicmind.onrender.com/liked-songs", { withCredentials: true })
+      .get("https://mymusicmind-9gke.onrender.com/liked-songs", { withCredentials: true })
       .then((res) => setLikedSongs(res.data))
       .catch((err) => setError(err.response?.data || t("errorFetchingLikedSongs")))
       .finally(() => setIsLoading(false));

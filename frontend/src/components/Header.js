@@ -26,7 +26,7 @@ const Header = ({ profile, onLogin, loading }) => {
     i18n.changeLanguage(newLang);
 
     try {
-      await fetch("https://mymusicmind.onrender.com/profile/set-language", {
+      await fetch("https://mymusicmind-9gke.onrender.com/profile/set-language", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

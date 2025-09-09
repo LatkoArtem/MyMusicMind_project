@@ -165,17 +165,17 @@ def refresh_spotify_access_token():
 @app.route("/callback")
 def callback():
     if not session.get("expecting_callback"):
-        return redirect("https://mymusicmind.onrender.com?error=unexpected_callback")
+        return redirect("https://mymusicmind-9gke.onrender.com?error=unexpected_callback")
 
     session.pop("expecting_callback", None)
 
     error = request.args.get("error")
     if error:
-        return redirect("https://mymusicmind.onrender.com?error=access_denied")
+        return redirect("https://mymusicmind-9gke.onrender.com?error=access_denied")
 
     code = request.args.get("code")
     if not code:
-        return redirect("https://mymusicmind.onrender.com?error=no_code")
+        return redirect("https://mymusicmind-9gke.onrender.com?error=no_code")
 
     response = requests.post(
         SPOTIFY_TOKEN_URL,
@@ -190,7 +190,7 @@ def callback():
     )
 
     if response.status_code != 200:
-        return redirect("https://mymusicmind.onrender.com?error=token_failed")
+        return redirect("https://mymusicmind-9gke.onrender.com?error=token_failed")
 
     tokens = response.json()
     session["access_token"] = tokens["access_token"]
@@ -213,7 +213,7 @@ def callback():
                 db.session.commit()
             session["user_id"] = user.id
 
-    return redirect("https://mymusicmind.onrender.com")
+    return redirect("https://mymusicmind-9gke.onrender.com")
 
 @app.route("/profile")
 def profile():
