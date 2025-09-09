@@ -8,6 +8,9 @@ import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
@@ -671,7 +674,7 @@ def search_genius(song_title, artist_name):
     return None
 
 # --- Scrape lyrics using Selenium ---
-def scrape_lyrics_from_url(url):
+def scrape_lyrics_from_url(url, wait_time=10):
     logging.info(f"Scraping Genius URL via Selenium: {url}")
 
     options = Options()
@@ -679,22 +682,31 @@ def scrape_lyrics_from_url(url):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                         "AppleWebKit/537.36 (KHTML, like Gecko) "
-                         "Chrome/120.0.0.0 Safari/537.36")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
 
     driver = webdriver.Chrome(options=options)
     lyrics_text = None
 
     try:
         driver.get(url)
-        time.sleep(2)  # чекаємо, поки JS прогрузиться
 
-        lyrics_lines = []
+        try:
+            # Чекаємо, поки з'явиться хоча б один lyrics container
+            WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-lyrics-container='true']"))
+            )
+        except TimeoutException:
+            logging.warning("Lyrics container divs did not load in time")
+            return None
 
         container_divs = driver.find_elements(By.CSS_SELECTOR, "div[data-lyrics-container='true']")
         logging.info(f"Found {len(container_divs)} lyrics container divs")
 
+        lyrics_lines = []
         for div in container_divs:
             p_elements = div.find_elements(By.TAG_NAME, "p")
             for p in p_elements:
