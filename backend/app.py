@@ -630,8 +630,8 @@ def search_genius(song_title, artist_name):
     data = response.json()
     hits = data.get("response", {}).get("hits", [])
     for hit in hits:
-        if artist_name.lower() in hit["result"]["primary_artist"]["name"].lower():
-            logging.info(f"Genius song URL found: {hit['result']['url']}")
+        genius_artist = hit["result"]["primary_artist"]["name"].lower()
+        if artist_name.lower().split()[0] in genius_artist:
             return hit["result"]["url"]
     logging.warning("No matching song found on Genius")
     return None
@@ -651,16 +651,24 @@ def scrape_lyrics_from_url(url):
         print(f"[ERROR] Exception while fetching page: {e}")
         return None
 
+    print(f"[DEBUG] Status code: {page.status_code}")
     if page.status_code != 200:
         print(f"[ERROR] Failed to fetch page, status: {page.status_code}")
         return None
 
+    # DEBUG: покажемо перші 500 символів HTML
+    print("[DEBUG] Page content preview:", page.text[:500])
+
     soup = BeautifulSoup(page.text, "html.parser")
 
     lyrics_blocks = soup.select("div[data-lyrics-container='true']")
+    print(f"[DEBUG] Found {len(lyrics_blocks)} blocks with data-lyrics-container")
+
     if not lyrics_blocks:
         print("[WARN] No 'data-lyrics-container' blocks found, trying 'div.lyrics'")
         lyrics_blocks = soup.select("div.lyrics")
+        print(f"[DEBUG] Found {len(lyrics_blocks)} blocks with div.lyrics")
+
     if not lyrics_blocks:
         print("[ERROR] No lyrics blocks found on page")
         return None
@@ -674,6 +682,8 @@ def scrape_lyrics_from_url(url):
             text = p.get_text(separator="\n").strip()
             if text:
                 lyrics_lines.append(text)
+
+    print(f"[DEBUG] Extracted {len(lyrics_lines)} <p> lines")
 
     full_text = "\n".join(lyrics_lines)
     full_text = re.sub(r"\[.*?\]", "", full_text)
