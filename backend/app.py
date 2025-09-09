@@ -609,6 +609,9 @@ def get_saved_episodes():
     return jsonify(all_episodes)
 
 ############## GENIUS LYRICS PARSING ##############
+GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
+HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"} if GENIUS_API_TOKEN else {}
+
 @app.route("/debug_token_safe")
 def debug_token_safe():
     token = os.getenv("GENIUS_API_TOKEN")
@@ -620,39 +623,36 @@ def debug_token_safe():
         "token_preview": preview
     })
 
-# --- Genius API ---
-GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
-HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"} if GENIUS_API_TOKEN else {}
-
-# Search for songs on Genius
+# --- Search song via Genius API ---
 def search_genius(song_title, artist_name):
-    base_url = "https://api.genius.com/search"
-    query = f"{song_title} {artist_name}"
-
     if not GENIUS_API_TOKEN:
-        logging.warning("GENIUS_API_TOKEN не знайдено!")
-    else:
-        logging.info(f"Using GENIUS_API_TOKEN, preview: {GENIUS_API_TOKEN[:4]}...{GENIUS_API_TOKEN[-4:]}")
+        logging.warning("GENIUS_API_TOKEN not found!")
+        return None
 
+    query = f"{song_title} {artist_name}"
     logging.info(f"Searching Genius for: {query}")
 
     try:
-        response = requests.get(base_url, params={"q": query}, headers=HEADERS_GENIUS, timeout=10)
+        response = requests.get(
+            "https://api.genius.com/search",
+            params={"q": query},
+            headers=HEADERS_GENIUS,
+            timeout=10
+        )
         logging.info(f"Genius API status: {response.status_code}")
     except Exception as e:
         logging.error(f"Request to Genius API failed: {e}")
         return None
 
     if response.status_code != 200:
-        logging.error(f"Genius API returned non-200 status: {response.status_code}")
-        logging.error(f"Response text preview: {response.text[:500]}")
+        logging.error(f"Genius API returned status: {response.status_code}")
+        logging.error(f"Response preview: {response.text[:500]}")
         return None
 
     try:
         data = response.json()
     except Exception as e:
         logging.error(f"Failed to parse JSON from Genius API: {e}")
-        logging.error(f"Response text preview: {response.text[:500]}")
         return None
 
     hits = data.get("response", {}).get("hits", [])
@@ -667,17 +667,16 @@ def search_genius(song_title, artist_name):
     logging.warning(f"No matching song found for '{song_title}' by '{artist_name}' on Genius")
     return None
 
-# Scrape lyrics
-HEADERS_PAGE = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/120.0.0.0 Safari/537.36"
-}
-
+# --- Scrape lyrics from Genius page ---
 def scrape_lyrics_from_url(url):
     logging.info(f"Scraping Genius URL: {url}")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        page = requests.get(url, headers=HEADERS_PAGE, timeout=10)
+        page = requests.get(url, headers=headers, timeout=10)
         logging.info(f"Page fetch status: {page.status_code}")
     except Exception as e:
         logging.error(f"Exception while fetching page: {e}")
@@ -689,23 +688,19 @@ def scrape_lyrics_from_url(url):
         return None
 
     soup = BeautifulSoup(page.text, "html.parser")
-
     lyrics_blocks = soup.select("div[data-lyrics-container='true']")
     logging.info(f"Found {len(lyrics_blocks)} lyrics blocks on page")
 
-    if not lyrics_blocks:
-        logging.warning("No lyrics blocks found on page, trying fallback <p> tags")
-        lyrics_blocks = soup.find_all("p")
-        logging.info(f"Fallback found {len(lyrics_blocks)} <p> tags")
-
     lyrics_lines = []
-    for block in lyrics_blocks:
-        for p in block.find_all("p"):
-            text = p.get_text(separator=" ", strip=True)
+    if lyrics_blocks:
+        for block in lyrics_blocks:
+            text = block.get_text(separator="\n", strip=True)
             if text:
                 lyrics_lines.append(text)
-
-    logging.info(f"Extracted {len(lyrics_lines)} text lines from page")
+    else:
+        lyrics_div = soup.find("div", class_="lyrics")
+        if lyrics_div:
+            lyrics_lines.append(lyrics_div.get_text(separator="\n", strip=True))
 
     full_text = "\n".join(lyrics_lines)
     full_text = re.sub(r"\[.*?\]", "", full_text)
