@@ -609,62 +609,28 @@ def get_saved_episodes():
     return jsonify(all_episodes)
 
 ############## GENIUS LYRICS PARSING ##############
-GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
-HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"} if GENIUS_API_TOKEN else {}
-
-# --- Search song via Genius API (як у скрипті) ---
-def search_genius(song_title, artist_name):
-    query = f"{song_title} {artist_name}"
-    url = "https://api.genius.com/search"
-    headers = HEADERS_GENIUS
-    params = {"q": query}
+# --- Search lyrics via lyrics.ovh ---
+def search_lyrics_ovh(song_title, artist_name):
+    query_artist = artist_name.strip()
+    query_title = song_title.strip()
+    url = f"https://api.lyrics.ovh/v1/{query_artist}/{query_title}"
 
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response = requests.get(url, timeout=10)
         if response.status_code != 200:
-            logging.error(f"Genius API error {response.status_code}: {response.text[:500]}")
+            logging.warning(f"Lyrics.ovh returned status {response.status_code} for '{query_title}' by '{query_artist}'")
+            return None
+        data = response.json()
+        lyrics = data.get("lyrics")
+        if lyrics:
+            lyrics = lyrics.strip()
+            return lyrics if lyrics else None
+        else:
+            logging.warning(f"No lyrics found for '{query_title}' by '{query_artist}' on Lyrics.ovh")
             return None
     except Exception as e:
-        logging.error(f"Error fetching Genius API: {e}")
+        logging.error(f"Error fetching Lyrics.ovh API: {e}")
         return None
-
-    hits = response.json().get("response", {}).get("hits", [])
-    if not hits:
-        logging.info(f"No hits found for {query}")
-        return None
-
-    song_url = hits[0]["result"]["url"]
-    logging.info(f"Found song: {song_url}")
-    return song_url
-
-# --- Scrape lyrics from Genius page ---
-def scrape_lyrics_from_url(url):
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-    try:
-        page = requests.get(url, headers=headers, timeout=10)
-        if page.status_code != 200:
-            logging.error(f"Failed to fetch page {url}: {page.status_code}")
-            return None
-    except Exception as e:
-        logging.error(f"Exception while fetching page: {e}")
-        return None
-
-    soup = BeautifulSoup(page.text, "html.parser")
-    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
-    if not lyrics_blocks:
-        logging.warning(f"No lyrics found at {url}")
-        return None
-
-    lyrics = "\n".join(block.get_text(separator="\n", strip=True) for block in lyrics_blocks)
-    lyrics = re.sub(r"\[.*?\]", "", lyrics)
-    lyrics = re.sub(r"\n{2,}", "\n", lyrics).strip()
-    return lyrics if lyrics else None
 
 # --- Flask endpoint ---
 @app.route("/get_lyrics", methods=["GET"])
@@ -681,6 +647,7 @@ def get_lyrics():
     lyrics_hash = hash_lyrics(search_string)
     logging.info(f"Searching lyrics for: {search_string}, hash: {lyrics_hash}")
 
+    # --- check cache ---
     try:
         cached = get_cached_lyrics(lyrics_hash)
     except Exception as e:
@@ -702,16 +669,13 @@ def get_lyrics():
             "source": "cache"
         })
 
-    genius_url = search_genius(song, artist)
-    if not genius_url:
-        logging.error(f"Song '{song}' by '{artist}' not found on Genius")
-        return jsonify({"error": "Song not found on Genius"}), 404
-
-    lyrics = scrape_lyrics_from_url(genius_url)
+    # --- fetch from Lyrics.ovh ---
+    lyrics = search_lyrics_ovh(song, artist)
     if not lyrics:
-        logging.error(f"Lyrics could not be scraped for URL: {genius_url}")
-        return jsonify({"error": "Lyrics not found or could not be parsed"}), 500
+        logging.error(f"Lyrics not found for '{song}' by '{artist}' on Lyrics.ovh")
+        return jsonify({"error": "Lyrics not found"}), 404
 
+    # --- cache lyrics ---
     try:
         set_cached_lyrics(lyrics_hash, lyrics)
         logging.info("Lyrics cached successfully")
@@ -725,7 +689,7 @@ def get_lyrics():
         "song": song,
         "artist": artist,
         "lyrics": lyrics,
-        "source_url": genius_url
+        "source": "Lyrics.ovh"
     })
 ############## GENIUS LYRICS PARSING END ##############
 
@@ -1430,21 +1394,53 @@ def get_all_album_tracks(album_id, headers):
 
     return tracks
 
+ALLOWED_GENRES = {
+    "Rap", "Hip-Hop", "R&B", "Pop", "Rock", "Country", "Jazz", "Blues",
+    "Electronic", "Dance", "Soul", "Funk", "Reggae", "Metal", "Punk",
+    "Classical", "Indie", "Alternative", "Latin", "Disco", "Gospel",
+    "Trap", "House", "Techno", "Dubstep", "Ambient", "K-Pop", "Grime",
+    "Ska", "Bluegrass", "Electro", "Drum & Bass", "Chillout", "Synthpop",
+    "Garage", "Trap Soul", "Lo-fi Hip-Hop", "Electro Swing", "Future Bass",
+    "Vaporwave", "Tropical House", "Post-Rock", "Shoegaze", "Dream Pop",
+    "Neo-Soul", "Emo", "Hard Rock", "Progressive Rock", "Folk", "Acoustic",
+    "Experimental", "Chillwave", "Trap Rap", "Christian", "Musical Theatre"
+}
+
+def get_all_album_tracks(album_id, headers):
+    tracks = []
+    url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
+    params = {"limit": 50, "market": "US"}
+    while url:
+        resp = requests.get(url, headers=headers, params=params)
+        data = resp.json()
+        tracks.extend(data.get("items", []))
+        url = data.get("next")
+        params = None
+    return tracks
+
+def get_lastfm_track_tags(artist_name, track_name):
+    url = "http://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "track.gettoptags",
+        "artist": artist_name,
+        "track": track_name,
+        "api_key": LASTFM_API_KEY,
+        "format": "json"
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+        tags = data.get("toptags", {}).get("tag", [])
+        if isinstance(tags, dict):
+            tags = [tags]  # один тег
+        return [tag["name"] for tag in tags if tag["name"] in ALLOWED_GENRES]
+    except Exception as e:
+        print(f"❌ Last.fm error for '{track_name}': {e}")
+        return []
+
 @app.route("/genre_evolution/<artist_name>")
 def genre_evolution(artist_name):
     headers = get_spotify_headers()
-
-    allowed_genres = {
-        "Rap", "Hip-Hop", "R&B", "Pop", "Rock", "Country", "Jazz", "Blues",
-        "Electronic", "Dance", "Soul", "Funk", "Reggae", "Metal", "Punk",
-        "Classical", "Indie", "Alternative", "Latin", "Disco", "Gospel",
-        "Trap", "House", "Techno", "Dubstep", "Ambient", "K-Pop", "Grime",
-        "Ska", "Bluegrass", "Electro", "Drum & Bass", "Chillout", "Synthpop",
-        "Garage", "Trap Soul", "Lo-fi Hip-Hop", "Electro Swing", "Future Bass",
-        "Vaporwave", "Tropical House", "Post-Rock", "Shoegaze", "Dream Pop",
-        "Neo-Soul", "Emo", "Hard Rock", "Progressive Rock", "Folk", "Acoustic",
-        "Experimental", "Chillwave", "Trap Rap", "Christian", "Musical Theatre"
-    }
 
     search_resp = requests.get(
         "https://api.spotify.com/v1/search",
@@ -1452,30 +1448,20 @@ def genre_evolution(artist_name):
         params={"q": artist_name, "type": "artist", "limit": 5}
     )
     search_data = search_resp.json()
-
     if "artists" not in search_data or not search_data["artists"]["items"]:
         return jsonify({"error": "Artist not found"}), 404
 
     artist_name_lower = artist_name.lower()
-    best_artist = None
-    for artist in search_data["artists"]["items"]:
-        if artist["name"].lower() == artist_name_lower:
-            best_artist = artist
-            break
-
-    if best_artist is None:
-        best_artist = search_data["artists"]["items"][0]
+    best_artist = next(
+        (a for a in search_data["artists"]["items"] if a["name"].lower() == artist_name_lower),
+        search_data["artists"]["items"][0]
+    )
 
     artist_id = best_artist["id"]
     print(f"Using artist: {best_artist['name']} with ID: {artist_id}")
 
     albums_url = f"https://api.spotify.com/v1/artists/{artist_id}/albums"
-    albums_params = {
-        "include_groups": "album,single",
-        "limit": 50,
-        "market": "US",
-    }
-
+    albums_params = {"include_groups": "album,single", "limit": 50, "market": "US"}
     all_albums = []
     while albums_url:
         resp = requests.get(albums_url, headers=headers, params=albums_params)
@@ -1490,7 +1476,6 @@ def genre_evolution(artist_name):
     genre_by_year = defaultdict(lambda: defaultdict(int))
     tracks_count_by_year = defaultdict(int)
     seen_tracks_per_year = defaultdict(set)
-
     detailed_output = []
 
     def album_release_key(album):
@@ -1516,11 +1501,8 @@ def genre_evolution(artist_name):
         if not year:
             continue
 
-        album_id = album["id"]
         album_name = album.get("name", "Unknown Album")
-
-        tracks = get_all_album_tracks(album_id, headers)
-
+        tracks = get_all_album_tracks(album["id"], headers)
         album_tracks_for_output = []
 
         for track in tracks:
@@ -1532,23 +1514,9 @@ def genre_evolution(artist_name):
             tracks_count_by_year[year] += 1
             album_tracks_for_output.append(track["name"])
 
-            # Пошук у Genius
-            genius_url = search_genius(track["name"], artist_name)
-            if not genius_url:
-                continue
-
-            try:
-                page = requests.get(genius_url)
-                soup = BeautifulSoup(page.text, "html.parser")
-                all_tags = [a.get_text(strip=True) for a in soup.select("a[href*='/tags/']")]
-                filtered_tags = [tag for tag in all_tags if tag in allowed_genres]
-
-                for tag in filtered_tags:
-                    genre_by_year[str(year)][tag] += 1
-
-            except Exception as e:
-                print(f"❌ Error parsing Genius page for track '{track['name']}': {e}")
-                continue
+            tags = get_lastfm_track_tags(best_artist["name"], track["name"])
+            for tag in tags:
+                genre_by_year[str(year)][tag] += 1
 
         detailed_output.append({
             "album_name": album_name,
@@ -1557,7 +1525,6 @@ def genre_evolution(artist_name):
             "tracks": album_tracks_for_output
         })
 
-    # Виводимо в консоль для контролю
     print("\n=== Albums and tracks used in analysis ===")
     for item in detailed_output:
         print(f"{item['release_date']} — {item['album_name']} ({len(item['tracks'])} tracks):")
@@ -1567,7 +1534,6 @@ def genre_evolution(artist_name):
 
     result = {}
     all_years = set(tracks_count_by_year.keys()) | set(int(y) for y in genre_by_year.keys())
-
     for year in sorted(all_years):
         year_str = str(year)
         result[year_str] = {
