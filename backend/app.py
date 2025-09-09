@@ -5,6 +5,9 @@ import json
 import time
 import numpy as np
 import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
@@ -667,53 +670,54 @@ def search_genius(song_title, artist_name):
     logging.warning(f"No matching song found for '{song_title}' by '{artist_name}' on Genius")
     return None
 
-# --- Scrape lyrics from Genius page ---
+# --- Scrape lyrics using Selenium ---
 def scrape_lyrics_from_url(url):
-    logging.info(f"Scraping Genius URL: {url}")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/120.0.0.0 Safari/537.36"
-    }
+    logging.info(f"Scraping Genius URL via Selenium: {url}")
+
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                         "AppleWebKit/537.36 (KHTML, like Gecko) "
+                         "Chrome/120.0.0.0 Safari/537.36")
+
+    driver = webdriver.Chrome(options=options)
+    lyrics_text = None
+
     try:
-        page = requests.get(url, headers=headers, timeout=10)
-        logging.info(f"Page fetch status: {page.status_code}")
+        driver.get(url)
+        time.sleep(2)  # чекаємо, поки JS прогрузиться
+
+        lyrics_lines = []
+
+        container_divs = driver.find_elements(By.CSS_SELECTOR, "div[data-lyrics-container='true']")
+        logging.info(f"Found {len(container_divs)} lyrics container divs")
+
+        for div in container_divs:
+            p_elements = div.find_elements(By.TAG_NAME, "p")
+            for p in p_elements:
+                text = p.text.strip()
+                if text:
+                    lyrics_lines.append(text)
+
+        if lyrics_lines:
+            full_text = "\n".join(lyrics_lines)
+            full_text = re.sub(r"\[.*?\]", "", full_text)
+            lyrics_text = re.sub(r"\n{2,}", "\n", full_text).strip()
+            logging.info(f"Lyrics successfully scraped, {len(lyrics_text)} characters")
+        else:
+            logging.warning("No lyrics found inside <p> tags in containers")
+
     except Exception as e:
-        logging.error(f"Exception while fetching page: {e}")
-        return None
+        logging.error(f"Error scraping lyrics via Selenium: {e}")
+    finally:
+        driver.quit()
 
-    if page.status_code != 200:
-        logging.error(f"Failed to fetch page, status: {page.status_code}")
-        logging.error(f"Page preview: {page.text[:500]}")
-        return None
+    return lyrics_text
 
-    soup = BeautifulSoup(page.text, "html.parser")
-    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
-    logging.info(f"Found {len(lyrics_blocks)} lyrics blocks on page")
-
-    lyrics_lines = []
-    if lyrics_blocks:
-        for block in lyrics_blocks:
-            text = block.get_text(separator="\n", strip=True)
-            if text:
-                lyrics_lines.append(text)
-    else:
-        lyrics_div = soup.find("div", class_="lyrics")
-        if lyrics_div:
-            lyrics_lines.append(lyrics_div.get_text(separator="\n", strip=True))
-
-    full_text = "\n".join(lyrics_lines)
-    full_text = re.sub(r"\[.*?\]", "", full_text)
-    cleaned_lyrics = re.sub(r"\n{2,}", "\n", full_text).strip()
-
-    if not cleaned_lyrics:
-        logging.warning("Lyrics extracted but empty after cleaning")
-        return None
-
-    logging.info(f"Lyrics successfully scraped, {len(cleaned_lyrics)} characters")
-    return cleaned_lyrics
-
-# Main endpoint
+# --- Main endpoint ---
 @app.route("/get_lyrics", methods=["GET"])
 def get_lyrics():
     song = request.args.get("song")
