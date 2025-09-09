@@ -670,15 +670,10 @@ def scrape_lyrics_from_url(url):
         for excluded in block.select('[data-exclude-from-selection="true"]'):
             excluded.decompose()
 
-        for element in block.descendants:
-            if isinstance(element, str):
-                text = element.strip()
-                if text:
-                    lyrics_lines.append(text)
-            elif getattr(element, "get_text", None):
-                text = element.get_text(separator="\n").strip()
-                if text:
-                    lyrics_lines.append(text)
+        for p in block.find_all("p"):
+            text = p.get_text(separator="\n").strip()
+            if text:
+                lyrics_lines.append(text)
 
     full_text = "\n".join(lyrics_lines)
     full_text = re.sub(r"\[.*?\]", "", full_text)
