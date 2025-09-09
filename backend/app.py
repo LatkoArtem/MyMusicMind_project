@@ -609,13 +609,31 @@ def get_saved_episodes():
     return jsonify(all_episodes)
 
 ############## GENIUS LYRICS PARSING ##############
+@app.route("/debug_token_safe")
+def debug_token_safe():
+    token = os.getenv("GENIUS_API_TOKEN")
+    exists = token is not None
+    preview = token[:4] + "..." + token[-4:] if token else None
+    logging.info(f"GENIUS_API_TOKEN exists: {exists}")
+    return jsonify({
+        "token_exists": exists,
+        "token_preview": preview
+    })
+
+# --- Genius API ---
 GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
-HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
+HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"} if GENIUS_API_TOKEN else {}
 
 # Search for songs on Genius
 def search_genius(song_title, artist_name):
     base_url = "https://api.genius.com/search"
     query = f"{song_title} {artist_name}"
+
+    if not GENIUS_API_TOKEN:
+        logging.warning("GENIUS_API_TOKEN не знайдено!")
+    else:
+        logging.info(f"Using GENIUS_API_TOKEN, preview: {GENIUS_API_TOKEN[:4]}...{GENIUS_API_TOKEN[-4:]}")
+
     logging.info(f"Searching Genius for: {query}")
 
     try:
