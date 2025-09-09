@@ -260,7 +260,13 @@ def profile():
 def logout():
     session.clear()
     response = jsonify({"message": "Logged out"})
-    response.delete_cookie(app.config['SESSION_COOKIE_NAME'])
+    response.delete_cookie(
+        app.config['SESSION_COOKIE_NAME'],
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="Lax"
+    )
     return response, 200
 
 @app.route("/liked-songs")
