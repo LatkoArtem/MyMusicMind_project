@@ -5,12 +5,6 @@ import json
 import time
 import numpy as np
 import logging
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
@@ -618,118 +612,61 @@ def get_saved_episodes():
 GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
 HEADERS_GENIUS = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"} if GENIUS_API_TOKEN else {}
 
-@app.route("/debug_token_safe")
-def debug_token_safe():
-    token = os.getenv("GENIUS_API_TOKEN")
-    exists = token is not None
-    preview = token[:4] + "..." + token[-4:] if token else None
-    logging.info(f"GENIUS_API_TOKEN exists: {exists}")
-    return jsonify({
-        "token_exists": exists,
-        "token_preview": preview
-    })
-
-# --- Search song via Genius API ---
+# --- Search song via Genius API (як у скрипті) ---
 def search_genius(song_title, artist_name):
-    if not GENIUS_API_TOKEN:
-        logging.warning("GENIUS_API_TOKEN not found!")
-        return None
-
     query = f"{song_title} {artist_name}"
-    logging.info(f"Searching Genius for: {query}")
+    url = "https://api.genius.com/search"
+    headers = HEADERS_GENIUS
+    params = {"q": query}
 
     try:
-        response = requests.get(
-            "https://api.genius.com/search",
-            params={"q": query},
-            headers=HEADERS_GENIUS,
-            timeout=10
-        )
-        logging.info(f"Genius API status: {response.status_code}")
-    except Exception as e:
-        logging.error(f"Request to Genius API failed: {e}")
-        return None
-
-    if response.status_code != 200:
-        logging.error(f"Genius API returned status: {response.status_code}")
-        logging.error(f"Response preview: {response.text[:500]}")
-        return None
-
-    try:
-        data = response.json()
-    except Exception as e:
-        logging.error(f"Failed to parse JSON from Genius API: {e}")
-        return None
-
-    hits = data.get("response", {}).get("hits", [])
-    logging.info(f"Found {len(hits)} hits in Genius search")
-
-    for hit in hits:
-        genius_artist = hit["result"]["primary_artist"]["name"].lower()
-        if artist_name.lower().split()[0] in genius_artist:
-            logging.info(f"Match found: {hit['result']['full_title']} -> {hit['result']['url']}")
-            return hit["result"]["url"]
-
-    logging.warning(f"No matching song found for '{song_title}' by '{artist_name}' on Genius")
-    return None
-
-# --- Scrape lyrics using Selenium ---
-def scrape_lyrics_from_url(url, wait_time=10):
-    logging.info(f"Scraping Genius URL via Selenium: {url}")
-
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-
-    driver = webdriver.Chrome(options=options)
-    lyrics_text = None
-
-    try:
-        driver.get(url)
-
-        try:
-            # Чекаємо, поки з'явиться хоча б один lyrics container
-            WebDriverWait(driver, wait_time).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-lyrics-container='true']"))
-            )
-        except TimeoutException:
-            logging.warning("Lyrics container divs did not load in time")
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code != 200:
+            logging.error(f"Genius API error {response.status_code}: {response.text[:500]}")
             return None
-
-        container_divs = driver.find_elements(By.CSS_SELECTOR, "div[data-lyrics-container='true']")
-        logging.info(f"Found {len(container_divs)} lyrics container divs")
-
-        lyrics_lines = []
-        for div in container_divs:
-            p_elements = div.find_elements(By.TAG_NAME, "p")
-            for p in p_elements:
-                text = p.text.strip()
-                if text:
-                    lyrics_lines.append(text)
-
-        if lyrics_lines:
-            full_text = "\n".join(lyrics_lines)
-            full_text = re.sub(r"\[.*?\]", "", full_text)
-            lyrics_text = re.sub(r"\n{2,}", "\n", full_text).strip()
-            logging.info(f"Lyrics successfully scraped, {len(lyrics_text)} characters")
-        else:
-            logging.warning("No lyrics found inside <p> tags in containers")
-
     except Exception as e:
-        logging.error(f"Error scraping lyrics via Selenium: {e}")
-    finally:
-        driver.quit()
+        logging.error(f"Error fetching Genius API: {e}")
+        return None
 
-    return lyrics_text
+    hits = response.json().get("response", {}).get("hits", [])
+    if not hits:
+        logging.info(f"No hits found for {query}")
+        return None
 
-# --- Main endpoint ---
+    song_url = hits[0]["result"]["url"]
+    logging.info(f"Found song: {song_url}")
+    return song_url
+
+# --- Scrape lyrics from Genius page ---
+def scrape_lyrics_from_url(url):
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    try:
+        page = requests.get(url, headers=headers, timeout=10)
+        if page.status_code != 200:
+            logging.error(f"Failed to fetch page {url}: {page.status_code}")
+            return None
+    except Exception as e:
+        logging.error(f"Exception while fetching page: {e}")
+        return None
+
+    soup = BeautifulSoup(page.text, "html.parser")
+    lyrics_blocks = soup.select("div[data-lyrics-container='true']")
+    if not lyrics_blocks:
+        logging.warning(f"No lyrics found at {url}")
+        return None
+
+    lyrics = "\n".join(block.get_text(separator="\n", strip=True) for block in lyrics_blocks)
+    lyrics = re.sub(r"\[.*?\]", "", lyrics)
+    lyrics = re.sub(r"\n{2,}", "\n", lyrics).strip()
+    return lyrics if lyrics else None
+
+# --- Flask endpoint ---
 @app.route("/get_lyrics", methods=["GET"])
 def get_lyrics():
     song = request.args.get("song")
